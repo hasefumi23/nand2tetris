@@ -14,5 +14,8 @@ CHIP And {
     OUT out;
 
     PARTS:
-    // Put your code here:
+    Nand(a=a, b=b, out=not);
+    Nand(a=not, b=not, out=out);
+    // 自己流
+    // Not(in=not, out=out);
 }
