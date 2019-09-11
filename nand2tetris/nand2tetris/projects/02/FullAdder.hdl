@@ -13,5 +13,8 @@ CHIP FullAdder {
         carry;   // Left bit of a + b + c
 
     PARTS:
-    // Put you code here:
+    // 半加算機2つと単純な回路一つ
+    HalfAdder(a=a, b=b, sum=hsum1, carry=hcarry1);
+    HalfAdder(a=c, b=hsum1, sum=sum, carry=hcarry2);
+    Or(a=hcarry1, b=hcarry2, out=carry);
 }

@@ -13,5 +13,6 @@ CHIP Inc16 {
     OUT out[16];
 
     PARTS:
-   // Put you code here:
+    // true と false と bus の使い方が頭に入っていたら余裕だった
+    Add16(a=in, b[1..15]=false, b[0]=true, out=out);
 }
