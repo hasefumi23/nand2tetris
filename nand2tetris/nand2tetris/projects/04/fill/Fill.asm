@@ -11,35 +11,7 @@
 // "white" in every pixel;
 // the screen should remain fully clear as long as no key is pressed.
 
-// スクリーンの変数を設定
-@16384
-D=A
-@SCREEN
-M=D
 (LOOP_KEY)
-  // キーボードの変数を設定
-  @KBD
-  D=M
-  @pressed
-  M=D
-
-  @pressed
-  D=M
-
-  @ELSE_KEY
-  D;JNE
-
-  // 0 = white / 1 = black
-  @color
-  M=0
-  @DISP_SCREEN // スクリーンに表示する処理へジャンプ
-  0;JMP
-(ELSE_KEY)
-  @color
-  M=-1
-  @DISP_SCREEN // スクリーンに表示する処理へジャンプ
-  0;JMP
-(DISP_SCREEN)
   @SCREEN
   D=A
   @screen
@@ -68,12 +40,34 @@ M=D
     @END_COL // if (j > 32)
     D;JGT
 
+    // キーボードの変数を設定
+    @KBD
+    D=M
+    @pressed
+    M=D
+
+    @pressed
+    D=M
+
+    @ELSE_KEY
+    D;JNE
+
+    // 0 = white / 1 = black
+    @color
+    M=0
+    @DISP_SCREEN // スクリーンに表示する処理へジャンプ
+    0;JMP
+  (ELSE_KEY)
+    @color
+    M=-1
+    @DISP_SCREEN // スクリーンに表示する処理へジャンプ
+    0;JMP
+  (DISP_SCREEN)
     // 指定された色を表示する
     @color
     D=M
     @screen // 現在のスクリーンのアドレスの位置を指定
     A=M
-    M=-1
     M=D
 
     // スクリーンの次のピクセルを指定する
