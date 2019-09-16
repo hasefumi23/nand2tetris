@@ -40,4 +40,77 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+    // decode
+    // 「i xx a cccccc ddd jjj」という領域へ分けて考えることができる
+    // i ビットは命令の種類を表し、0が「A命令」、1が「C命令」に対応する
+    // C命令の場合、a ビットとcビットは「comp領域」、dビットは「dest領域」、jビットは「jump領域」を表す
+    // A命令の場合、iビットを除いた15ビットは定数値として解釈される
+    // instrucation[16] は様々な箇所で参照されるので、最初にわかりやすい変数名を付けておく
+    // jx
+    And(a=instruction[0], b=true, out=j3); // P 70 参照
+    And(a=instruction[1], b=true, out=j2); // P 70 参照
+    And(a=instruction[2], b=true, out=j1); // P 70 参照
+    // dx
+    And(a=instruction[3], b=true, out=d3); // P 70 参照
+    And(a=instruction[4], b=true, out=d2); // P 70 参照
+    And(a=instruction[5], b=true, out=d1); // P 70 参照
+    // cx
+    And(a=instruction[6], b=true, out=c6); // P 70 参照
+    And(a=instruction[7], b=true, out=c5); // P 70 参照
+    And(a=instruction[8], b=true, out=c4); // P 70 参照
+    And(a=instruction[9], b=true, out=c3); // P 70 参照
+    And(a=instruction[10], b=true, out=c2); // P 70 参照
+    And(a=instruction[11], b=true, out=c1); // P 70 参照
+    And(a=instruction[12], b=true, out=a); // P 70 参照
+    // 14 と 15 ビット目は使わない
+    // And(a=instruction[13], b=true, out=d1); // P 70 参照
+    // And(a=instruction[14], b=true, out=d1); // P 70 参照
+
+    Not(in=instruction[15], out=should-exec-A-cmd);
+    And(a=instruction[15], b=true, out=should-exec-C-cmd);
+
+    // IN a[16], b[16], sel;
+    // OUT out[16];
+    // A Register には should-exec-A-cmd = 1 の場合に値を登録する
+    // ALU-out-M を A Register に格納するのは C cmd で (A=D+1) などが実行された時
+    Mux16(a=ALU-out-M, b=instruction, sel=should-exec-A-cmd, out=out-inst);
+    // A Register に格納するか否かは d1 に値により決定される(図 4-4 参照)
+    Or(a=d1, b=should-exec-A-cmd, out=should-load-to-A-reg);
+    ARegister(in=out-inst, load=should-load-to-A-reg, out=out-A-reg, out[0..14]=addressM);
+
+    // IN in[16], load;
+    // OUT out[16];
+    // D Register に格納するか否かは d2 に値により決定される(図 4-4 参照)
+    And(a=d2, b=should-exec-C-cmd, out=should-load-D-reg);
+    DRegister(in=ALU-out-M, load=should-load-D-reg, out=out-D-reg);
+
+    // ALU に A Register の値を使うか否かは a の値により決定される(図 4-3 参照)
+    Mux16(a=out-A-reg, b=inM, sel=a, out=AReg-or-inM-mux);
+
+    // これは図 4-3 から一つずつ特定していくしかない希ガス...
+    ALU(x=out-D-reg, y=AReg-or-inM-mux, zx=c1, nx=c2, zy=c3, ny=c4, f=c5, no=c6, out=outM, out=ALU-out-M, zr=ALU-zr, ng=ALU-ng);
+
+    // IN in[16],load,inc,reset;
+    // OUT out[16];
+    // Jump は PC を使うことで実現できるはず
+    // if (Jump) then in=out-of-A-reg(load=true and inc=false);
+    // else inc=true and load=false
+    // なので、Jumpするかどうかでloadの値が決定され、inc=!loadとなるはず
+    // If out > 0 jump
+    Not(in=ALU-zr, out=not-ALU-zr);
+    Not(in=ALU-ng, out=not-ALU-ng);
+    And(a=not-ALU-zr, b=not-ALU-ng, out=is-outM-positive);
+    And(a=j3, b=is-outM-positive, out=JGT);
+    // If out = 0 jump
+    And(a=j2, b=ALU-zr, out=JEQ);
+    // If out < 0 jump
+    And(a=j1, b=ALU-ng, out=JLT);
+    Or(a=JGT, b=JEQ, out=tmp-jump0);
+    Or(a=tmp-jump0, b=JLT, out=tmp-jump1);
+    And(a=tmp-jump1, b=should-exec-C-cmd, out=should-jump);
+    Not(in=should-jump, out=should-inc);
+    PC(in=out-A-reg, load=should-jump, inc=should-inc, reset=reset, out[0..14]=pc, out[15]=nothing);
+
+    // メモリに値を格納するか否かは C cmd が指定された場合に限り d3 に値により決定される(図 4-4 参照)
+    And(a=d3, b=should-exec-C-cmd, out=writeM);
 }
