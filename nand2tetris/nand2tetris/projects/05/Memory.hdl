@@ -27,5 +27,25 @@ CHIP Memory {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    // 24576（0x6000）より大きいアドレスは無効
+    // メモリ:     16383.to_s(2) #=> 011111111111111
+    // スクリーン: 24575.to_s(2) #=> 101111111111111
+    // キーボード: 24576.to_s(2) #=> 110000000000000
+    // 13ビット目と14ビット目でどのI/Oに対しての操作なのかを特定可能
+    DMux4Way(in=load, sel[0]=address[13], sel[1]=address[14], a=should-operate-memory0, b=should-operate-memory1, c=should-operate-screen, d=should-operate-key);
+    
+    // 0 から 16384（0x4000）の範囲のアドレスはRAM16K
+    // in[16], load, address[14] out[16]
+    Or(a=should-operate-memory0, b=should-operate-memory1, out=should-operate-memory);
+    RAM16K(in=in, load=should-operate-memory, address=address[0..13], out=ram-out);
+
+    // 16384（0x4000）から24575 （0x5FFF）の範囲のアドレスはスクリーン
+    // in[16], load, address[13] out[16]
+    Screen(in=in, load=should-operate-screen, address=address[0..12], out=screen-out);
+
+    // 24576 （0x6000）はキーボードのメモリマップにアクセスする
+    // out[16]
+    Keyboard(out=key-out);
+
+    Mux4Way16(a=ram-out, b=ram-out, c=screen-out, d=key-out, sel[0]=address[13], sel[1]=address[14], out=out);
 }
