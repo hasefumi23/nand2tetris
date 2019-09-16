@@ -19,5 +19,8 @@ CHIP Computer {
     IN reset;
 
     PARTS:
-    // Put your code here:
+    // 最上位のComputer回路は、図5-8を設計図として、これまでに述べた回路から構築することができる
+    CPU(inM=memory-out, instruction=rom-out, reset=reset, outM=cpu-outM, writeM=cpu-writeM, addressM=cpu-addressM, pc=cpu-pc);
+    Memory(in=cpu-outM, load=cpu-writeM, address=cpu-addressM, out=memory-out);
+    ROM32K(address=cpu-pc, out=rom-out);
 }
