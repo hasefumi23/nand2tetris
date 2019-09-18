@@ -13,7 +13,7 @@ class Code
       when "AM" then "101"
       when "AD" then "110"
       when "AMD" then "111"
-      else raise CodeSyntaxError
+      else raise CodeSyntaxError.new("Passed mnemonic is #{mnemonic.inspect}")
       end
     end
 
@@ -48,7 +48,7 @@ class Code
       when "M-D" then "1000111"
       when "D&M" then "1000000"
       when "D|M" then "1010101"
-      else raise CodeSyntaxError
+      else raise CodeSyntaxError.new("Passed mnemonic is #{mnemonic.inspect}")
       end
     end
 
@@ -63,7 +63,7 @@ class Code
       when "JNE" then "101"
       when "JLE" then "110"
       when "JMP" then "111"
-      else raise CodeSyntaxError
+      else raise CodeSyntaxError.new("Passed mnemonic is #{mnemonic.inspect}")
       end
     end
   end

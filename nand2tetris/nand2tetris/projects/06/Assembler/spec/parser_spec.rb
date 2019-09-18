@@ -62,7 +62,7 @@ RSpec.describe Parser do
 
     it "returns number part" do
       parser.advance
-      expect(parser.symbol).to eq "100"
+      expect(parser.symbol).to eq "0000000001100100"
     end
   end
 

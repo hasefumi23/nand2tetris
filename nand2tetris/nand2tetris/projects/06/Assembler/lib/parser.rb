@@ -15,7 +15,7 @@ class Parser
     @file_contents = IO.readlines(file_name, chomp: true).map do |row|
       # コメント部分を削除する
       row.gsub(/\/\/.*/, "").strip
-    end
+    end.compact.reject { |e| e.empty? }
   end
 
   def hasMoreCommands?
@@ -60,8 +60,8 @@ class Parser
   def symbol
     # 現コマンド@Xxx または (Xxx) の Xxx を返す。Xxx はシンボルまたは 10 進数の数値である。このルーチンは commandType() が A_COMMAND ま たはL_COMMANDのときだけ呼ぶようにする
     # FIXME: 現時点では "@xxx" のみ考慮する
-    @current_command[1..-1]
-    # format("%.16b", command.to_i)
+    command = @current_command[1..-1]
+    "0#{format("%.15b", command.to_i)}"
   end
 
   def dest
