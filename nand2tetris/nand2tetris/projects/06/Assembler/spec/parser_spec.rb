@@ -65,4 +65,76 @@ RSpec.describe Parser do
       expect(parser.symbol).to eq "100"
     end
   end
+
+  describe "#dest" do
+    # コマンドに'='が含まれている場合、destニーモニックは存在する
+    context "current command has dest mnemonic" do
+      let(:file_contents) { ["D=M"] }
+      
+      it "returns number part" do
+        parser.advance
+        expect(parser.dest).to eq "D"
+      end
+    end
+
+    context "current command don't have dest mnemonic" do
+      let(:file_contents) { ["0;JMP"] }
+
+      it "returns nil" do
+        parser.advance
+        expect(parser.dest).to be nil
+      end
+    end
+  end
+
+  describe "#jump" do
+    # コマンドに';'が含まれている場合、jump ニーモニックは存在する
+    context "current command has jump mnemonic" do
+      let(:file_contents) { ["0;JMP"] }
+      
+      it "returns number part" do
+        parser.advance
+        expect(parser.jump).to eq "JMP"
+      end
+    end
+
+    context "current command don't have jump mnemonic" do
+      let(:file_contents) { ["D=M"] }
+
+      it "returns nil" do
+        parser.advance
+        expect(parser.jump).to be nil
+      end
+    end
+  end
+
+  describe "#comp" do
+    # コマンドに';'が含まれている場合、comp ニーモニックは存在する
+    context "current command has comp mnemonic with dest mnemonic" do
+      let(:file_contents) { ["DM=M+A"] }
+      
+      it "returns number part" do
+        parser.advance
+        expect(parser.comp).to eq "M+A"
+      end
+    end
+
+    context "current command has comp mnemonic with jump mnemonic" do
+      let(:file_contents) { ["0;JMP"] }
+
+      it "returns comp mnemonic" do
+        parser.advance
+        expect(parser.comp).to eq "0"
+      end
+    end
+
+    context "invalid syntax" do
+      let(:file_contents) { ["D"] }
+
+      it "raise Parser::AssemblerSyntaxError" do
+        parser.advance
+        expect { parser.comp }.to raise_error Parser::AssemblerSyntaxError
+      end
+    end
+  end
 end

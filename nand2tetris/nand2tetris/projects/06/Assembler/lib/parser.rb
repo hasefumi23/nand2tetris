@@ -1,4 +1,6 @@
 class Parser
+  class AssemblerSyntaxError < StandardError; end
+
   attr_reader :file_contents, :current_command
 
   # は@Xxxを意味し、Xxx はシンボルか 10 進数の数値である
@@ -58,22 +60,39 @@ class Parser
   def symbol
     # 現コマンド@Xxx または (Xxx) の Xxx を返す。Xxx はシンボルまたは 10 進数の数値である。このルーチンは commandType() が A_COMMAND ま たはL_COMMANDのときだけ呼ぶようにする
     # FIXME: 現時点では "@xxx" のみ考慮する
-    command = @current_command[1..-1]
+    @current_command[1..-1]
     # format("%.16b", command.to_i)
   end
 
   def dest
+    # destもしくはjumpのどちらかは空であるかもしれない。
+    # もしdestが空であれば、「=」は省略される。
+    # もしjumpが空であれば、「;」は省略される
     # 現 C 命令の dest ニーモニックを返 す（候補として 8 つの可能性がある）。 このルーチンは commandType() が C_COMMAND のときだけ呼ぶようにする 
-    0
+    if @current_command.include?("=")
+      @current_command.split("=").first
+    else
+      nil
+    end
   end
 
   def comp
     # 現 C 命令の comp ニーモニックを返 す（候補として 28 個の可能性がある）。 このルーチンは commandType() が C_COMMAND のときだけ呼ぶようにする 
-    ''
+    if dest
+      @current_command.split("=")[1]
+    elsif jump
+      @current_command.split(";")[0]
+    else
+      raise Parser::AssemblerSyntaxError
+    end
   end
 
   def jump
-    # 現 C 命令の jump ニーモニックを返 す（候補として 8 つの可能性がある）。 このルーチンは commandType() が C_COMMAND のときだけ呼ぶようにする
-
+    # 現 C 命令の jump ニーモニックを返 す（候補として 8 つの可能性がある）。 このルーチンは commandType() が C_COMMAND のときだけ呼ぶようにする 
+    if @current_command.include?(";")
+      @current_command.split(";")[1]
+    else
+      nil
+    end
   end
 end
