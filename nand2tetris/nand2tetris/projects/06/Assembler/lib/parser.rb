@@ -1,7 +1,8 @@
 class Parser
   class AssemblerSyntaxError < StandardError; end
 
-  attr_reader :file_contents, :current_command
+  attr_accessor :file_contents
+  attr_reader :current_command, :current_index
 
   # は@Xxxを意味し、Xxx はシンボルか 10 進数の数値である
   A_COMMAND = "A_COMMAND"
@@ -10,7 +11,12 @@ class Parser
   # は擬似コマンドであり、 (Xxx) を意味する。Xxx はシンボル である
   L_COMMAND = "L_COMMAND"
 
+  def self.convert_number_to_binary(num)
+    "0#{format("%.15b", num.to_i)}"
+  end
+
   def initialize(file_name)
+    @current_index = 0
     # 入力ファイル/ストリームを開きパースを 行う準備をする
     @file_contents = IO.readlines(file_name, chomp: true).map do |row|
       # コメント部分を削除する
@@ -18,14 +24,19 @@ class Parser
     end.compact.reject { |e| e.empty? }
   end
 
+  def reset_commnad_position!
+    @current_index = 0
+  end
+
   def hasMoreCommands?
     # 入力にまだコマンドが存在するか？
-    @file_contents.size.positive?
+    @file_contents.size > @current_index
   end
 
   def advance
     # 入力から次のコマンドを読み、それを 現在のコマンドにする。このルーチンは hasMoreCommands()がtrueの場 合のみ呼ぶようにする。最初は現コマンド は空である
-    @current_command = @file_contents.shift
+    @current_command = @file_contents[@current_index]
+    @current_index += 1
   end
 
   def a_command?
@@ -34,6 +45,10 @@ class Parser
 
   def c_command?
     commandType == C_COMMAND
+  end
+
+  def self.l_command?(command)
+    command.start_with?('(') && command.end_with?(')')
   end
 
   def l_command?
@@ -47,7 +62,7 @@ class Parser
     # A_COMMANDは@Xxxを意味し、Xxx はシンボルか 10 進数の数値である
     if @current_command.start_with? '@'
       return A_COMMAND
-    elsif @current_command.start_with?('(') && @current_command.end_with?(')')
+    elsif Parser.l_command?(@current_command)
       return L_COMMAND
     else 
       return C_COMMAND
@@ -60,8 +75,11 @@ class Parser
   def symbol
     # 現コマンド@Xxx または (Xxx) の Xxx を返す。Xxx はシンボルまたは 10 進数の数値である。このルーチンは commandType() が A_COMMAND ま たはL_COMMANDのときだけ呼ぶようにする
     # FIXME: 現時点では "@xxx" のみ考慮する
-    command = @current_command[1..-1]
-    "0#{format("%.15b", command.to_i)}"
+    @current_command[1..-1]
+  end
+
+  def sym_to_b
+    Parser::convert_number_to_binary(symbol)
   end
 
   def dest
