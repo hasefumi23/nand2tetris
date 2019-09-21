@@ -41,9 +41,10 @@ require_relative "./code_writer"
 
 class VM
   def self.run
-    output_file = File.new("SimpleAdd.asm", "w")
+    file_name = File.basename(ARGV[0])
+    output_file = File.new("#{file_name.split(".").first}.asm", "w")
     code_writer = CodeWriter.new(output_file)
-    parser = Parser.new("SimpleAdd.vm")
+    parser = Parser.new(file_name)
     parser.file_contents.size.times do
       parser.advance
       current_command = parser.current_command
