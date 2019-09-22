@@ -24,6 +24,7 @@ class CodeWriter
   # 出力ファイル/ストリームを開き、 書き込む準備を行う
   def initialize(out_file)
     @out_file = out_file
+    @file_name = out_file.path
     @stack_point = 256 # ~ 2047
     @heap = 2048 # ~ 16383
     @memory_mapped_io = 16384 # ~ 24575
@@ -186,6 +187,10 @@ class CodeWriter
     if segment == "temp"
       # segment == temp の場合のラベルが存在しないのでアドレスを直接指定するスタイル
       @out_file.puts("D=D+A")
+    elsif segment == "pointer"
+      @out_file.puts("D=A")
+    elsif segment == "static"
+      @out_file.puts("D=A")
     else
       @out_file.puts("D=D+M")
     end
@@ -202,16 +207,17 @@ class CodeWriter
 
   def write_push_command(segment, index)
     case segment
-    when "local" ,"argument" ,"this" ,"that", "temp"
+    when "local" ,"argument" ,"this" ,"that", "temp", "pointer", "static"
       seg_label = segment_label(segment, index)
       @out_file.puts("@#{index}")
       @out_file.puts("D=A")
       @out_file.puts("@#{seg_label}")
 
-      if segment == "temp"
-        @out_file.puts("D=A+D")
-      else
-        @out_file.puts("D=M+D")
+      case segment
+      when "temp" then @out_file.puts("D=A+D")
+      when "pointer" then @out_file.puts("D=A")
+      when "static" then @out_file.puts("D=A")
+      else @out_file.puts("D=M+D")
       end
 
       # PUSH対象のアドレスから値を取り出す
@@ -251,6 +257,13 @@ class CodeWriter
     when "this" then "THIS"
     when "that" then "THAT"
     when "temp" then START_OF_TEMP_ADDRESS
+    when "pointer"
+      case index
+      when "0" then "THIS"
+      when "1" then "THAT"
+      end
+    when "static"
+      "#{@file_name.split(".").first}.#{index}"
     end
   end
 
