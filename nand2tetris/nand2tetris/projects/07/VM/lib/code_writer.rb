@@ -1,9 +1,5 @@
 class CodeWriter
   attr_reader :out_file, :stack_point
-  # |  RAM[0]  | RAM[256] | RAM[257] | RAM[258] | RAM[259] | RAM[260] |
-  # |     266  |      -1  |       0  |       0  |       0  |      -1  |
-  # | RAM[261] | RAM[262] | RAM[263] | RAM[264] | RAM[265] |
-  # |       0  |      -1  |       0  |       0  |     -91  |
 
   # 出力ファイル/ストリームを開き、 書き込む準備を行う
   def initialize(out_file)
@@ -20,12 +16,6 @@ class CodeWriter
     @jne_count = 0
     @jle_count = 0
     @jmp_count = 0
-
-    # 初期化時に各レジスタを設定するためのコマンドを書き込む
-    @out_file.puts("@#{stack_point}")
-    @out_file.puts("D=A")
-    @out_file.puts("@SP")
-    @out_file.puts("M=D")
   end
 
   # CodeWriter モジュールに新しい VM ファイルの変換が開始したことを知らせる 
@@ -48,72 +38,93 @@ class CodeWriter
   end
 
   def write_add_sub_and_or_command(operator)
-    point_x = @stack_point - 2
-    @out_file.puts("@#{point_x}")
+    # オペレータの右辺の値を取り出してDレジスタにセット
+    # POP
+    @out_file.puts("@SP")
+    @out_file.puts("M=M-1")
+    @out_file.puts("A=M")
     @out_file.puts("D=M")
 
-    point_y = @stack_point -1
-    @out_file.puts("@#{point_y}")
-    @out_file.puts("D=D#{operator}M")
+    # オペレータの左辺の値を取り出してDレジスタにセット
+    # POP
+    @out_file.puts("@SP")
+    @out_file.puts("M=M-1")
+    @out_file.puts("A=M")
 
-    @out_file.puts("@#{point_x}")
+    # 計算結果をもともと左辺が格納されていたアドレスに格納する
+    # PUSH
+    @out_file.puts("D=M#{operator}D")
+    @out_file.puts("@SP")
+    @out_file.puts("A=M")
     @out_file.puts("M=D")
 
-    after_arithmetic_command
+    # 最後にSPの値をインクリメントする
+    @out_file.puts("@SP")
+    @out_file.puts("M=M+1")
   end
 
   def write_neg_or_not_command(operator)
-    point_y = @stack_point -1
-    @out_file.puts("@#{point_y}")
+    # 計算対象の値を取り出して計算結果を格納する
+    @out_file.puts("@SP")
+    @out_file.puts("M=M-1")
+    @out_file.puts("A=M")
     @out_file.puts("M=#{operator}M")
+
+    # 最後にSPの値をインクリメントする
+    @out_file.puts("@SP")
+    @out_file.puts("M=M+1")
   end
 
   def write_comparison_command(comparison_mnemonic)
     count_var_name = "@#{comparison_mnemonic.downcase}_count"
     count = eval(count_var_name)
 
-    # @RET_ADDRESS_LT0
-    point_x = @stack_point - 2
-    @out_file.puts("@#{point_x}")
+    # オペレータの右辺の値を取り出してDレジスタにセット
+    # POP
+    @out_file.puts("@SP")
+    @out_file.puts("M=M-1")
+    @out_file.puts("A=M")
     @out_file.puts("D=M")
 
-    point_y = @stack_point -1
-    @out_file.puts("@#{point_y}")
-    @out_file.puts("D=D-M")
+    # オペレータの左辺の値を取り出してDレジスタにセット
+    # POP
+    @out_file.puts("@SP")
+    @out_file.puts("M=M-1")
+    @out_file.puts("A=M")
+    @out_file.puts("D=M-D")
 
-    # x と yが等しかったらジャンプ
+    # 左辺と右辺が等しかったらジャンプ
     @out_file.puts("@TRUE_ADDRESS_#{comparison_mnemonic}#{count}")
     @out_file.puts("D;#{comparison_mnemonic}")
 
     # falseだったらジャンプせずに処理続行
-    @out_file.puts("@#{point_x}")
+    # 計算結果をもともと左辺が格納されていたアドレスに格納する
+    # PUSH
+    @out_file.puts("@SP")
+    @out_file.puts("A=M")
     @out_file.puts("M=0")
     @out_file.puts("@END_ADDRESS_#{comparison_mnemonic}#{count}")
     @out_file.puts("0;JMP")
 
     # 論理演算の結果がtrueだった時のジャンプ先のラベル
     @out_file.puts("(TRUE_ADDRESS_#{comparison_mnemonic}#{count})")
-    @out_file.puts("@#{point_x}")
+    # 計算結果をもともと左辺が格納されていたアドレスに格納する
+    # PUSH
+    @out_file.puts("@SP")
+    @out_file.puts("A=M")
     @out_file.puts("M=-1")
 
     # if文のendに相当するラベル
     @out_file.puts("(END_ADDRESS_#{comparison_mnemonic}#{count})")
 
-    # @jeq_count += 1
+    # 最後にSPの値をインクリメントする
+    @out_file.puts("@SP")
+    @out_file.puts("M=M+1")
+
     eval("#{count_var_name} += 1")
-    after_arithmetic_command
   end
 
   def write_and_command
-  end
-
-  # 算術コマンド実行後にStackPointの値を-1してSPレジスタに設定する
-  def after_arithmetic_command
-    @stack_point -= 1
-    @out_file.puts("@#{stack_point}")
-    @out_file.puts("D=A")
-    @out_file.puts("@SP")
-    @out_file.puts("M=D")
   end
 
   # 引数: （C_PUSH または C_POP）、 segment（文字列）、 index（整数）
@@ -122,11 +133,18 @@ class CodeWriter
   def write_push_pop(command, segment, index)
     case segment
     when "constant"
+      # Dレジスタに定数をセット
       @out_file.puts("@#{index}")
       @out_file.puts("D=A")
-      @out_file.puts("@#{stack_point}")
+
+      # SPが指すアドレスに値を格納
+      @out_file.puts("@SP")
+      @out_file.puts("A=M")
       @out_file.puts("M=D")
-      @stack_point += 1
+
+      # 最後にSPの値をインクリメントする
+      @out_file.puts("@SP")
+      @out_file.puts("M=M+1")
     end
   end
 
