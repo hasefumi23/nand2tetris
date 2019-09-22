@@ -40,6 +40,8 @@ class CodeWriter
 
   # 与えられた算術コマンドをアセンブリコードに変換し、それを書き込む
   def write_arithmetic(command)
+    @out_file.puts("// START: #{command}")
+
     case command
     when "add" then write_add_sub_and_or_command("+")
     when "sub" then write_add_sub_and_or_command("-")
@@ -51,6 +53,8 @@ class CodeWriter
     when "or" then write_add_sub_and_or_command("|")
     when "not" then write_neg_or_not_command("!")
     end
+
+    @out_file.puts("// END: #{command}")
   end
 
   def write_add_sub_and_or_command(operator)
@@ -149,76 +153,92 @@ class CodeWriter
   def write_push_pop(command, segment, index)
     @out_file.puts("// START: write_push_pop")
     @out_file.puts("// #{command}, #{segment}, #{index}")
+
     case command
-    when "push"
-      case segment
-      when "local" ,"argument" ,"this" ,"that", "temp"
-        seg_label = segment_label(segment, index)
-        @out_file.puts("@#{index}")
-        @out_file.puts("D=A")
-        @out_file.puts("@#{seg_label}")
-        @out_file.puts("D=M+D")
-
-        # SPが指すアドレスに値を格納
-        @out_file.puts("@SP")
-        @out_file.puts("A=M")
-        @out_file.puts("M=D")
-
-        # 最後にSPの値をインクリメントする
-        @out_file.puts("@SP")
-        @out_file.puts("M=M+1")
-      when "constant"
-        # Dレジスタに定数をセット
-        @out_file.puts("@#{index}")
-        @out_file.puts("D=A")
-
-        # SPが指すアドレスに値を格納
-        @out_file.puts("@SP")
-        @out_file.puts("A=M")
-        @out_file.puts("M=D")
-
-        # 最後にSPの値をインクリメントする
-        @out_file.puts("@SP")
-        @out_file.puts("M=M+1")
-      end
-    when "pop"
-      seg_label = segment_label(segment, index)
-      @out_file.puts("// write_push_pop: pop #{seg_label}")
-      # スタックからPOPする
-      @out_file.puts("@SP")
-      @out_file.puts("M=M-1")
-      @out_file.puts("A=M")
-      @out_file.puts("D=M")
-      @out_file.puts("@13")
-      @out_file.puts("M=D")
-
-      @out_file.puts("@#{index}")
-      @out_file.puts("D=A")
-      @out_file.puts("@#{seg_label}")
-      # segment == temp の場合のラベルが存在しないのでアドレスを直接指定するスタイル
-      if segment == "temp"
-        @out_file.puts("D=D+A")
-      else
-        @out_file.puts("D=D+M")
-      end
-      @out_file.puts("@14")
-      @out_file.puts("M=D")
-      @out_file.puts("@13")
-      @out_file.puts("D=M")
-      @out_file.puts("@14")
-      @out_file.puts("A=M")
-      @out_file.puts("M=D")
+    when "push" then write_push_command(segment, index)
+    when "pop" then write_pop_command(segment,index)
     end
 
     @out_file.puts("// END: write_push_pop")
   end
 
+  def write_pop_command(segment, index)
+    seg_label = segment_label(segment, index)
+    @out_file.puts("// write_push_pop: pop #{seg_label}")
+    # スタックからPOPする
+    @out_file.puts("@SP")
+    @out_file.puts("M=M-1")
+    @out_file.puts("A=M")
+    @out_file.puts("D=M")
+    # @13はPOPした値の一時退避用のアドレス
+    @out_file.puts("@13")
+    @out_file.puts("M=D")
+
+    @out_file.puts("@#{index}")
+    @out_file.puts("D=A")
+    @out_file.puts("@#{seg_label}")
+
+    # POP先の絶対アドレスをDに格納する
+    if segment == "temp"
+      # segment == temp の場合のラベルが存在しないのでアドレスを直接指定するスタイル
+      @out_file.puts("D=D+A")
+    else
+      @out_file.puts("D=D+M")
+    end
+
+    # @14はPOP先のアドレスの一時退避用のアドレス
+    @out_file.puts("@14")
+    @out_file.puts("M=D")
+    @out_file.puts("@13")
+    @out_file.puts("D=M")
+    @out_file.puts("@14")
+    @out_file.puts("A=M")
+    @out_file.puts("M=D")
+  end
+
+  def write_push_command(segment, index)
+    case segment
+    when "local" ,"argument" ,"this" ,"that", "temp"
+      seg_label = segment_label(segment, index)
+      @out_file.puts("@#{index}")
+      @out_file.puts("D=A")
+      @out_file.puts("@#{seg_label}")
+
+      if segment == "temp"
+        @out_file.puts("D=A+D")
+      else
+        @out_file.puts("D=M+D")
+      end
+
+      # PUSH対象のアドレスから値を取り出す
+      @out_file.puts("A=D")
+      @out_file.puts("D=M")
+
+      # SPが指すアドレスに値を格納
+      @out_file.puts("@SP")
+      @out_file.puts("A=M")
+      @out_file.puts("M=D")
+
+      # 最後にSPの値をインクリメントする
+      @out_file.puts("@SP")
+      @out_file.puts("M=M+1")
+    when "constant"
+      # Dレジスタに定数をセット
+      @out_file.puts("@#{index}")
+      @out_file.puts("D=A")
+
+      # SPが指すアドレスに値を格納
+      @out_file.puts("@SP")
+      @out_file.puts("A=M")
+      @out_file.puts("M=D")
+
+      # 最後にSPの値をインクリメントする
+      @out_file.puts("@SP")
+      @out_file.puts("M=M+1")
+    end
+  end
+
   # 対象とすべきラベル群
-  # argument
-  # local
-  # temp
-  # that
-  # this
   def segment_label(segment, index)
     # LCLの相対アドレスをAレジスタに設定してそこにDレジスタに登録した値を設定する
     case segment
