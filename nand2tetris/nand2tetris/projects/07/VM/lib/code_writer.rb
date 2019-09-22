@@ -14,6 +14,10 @@
 
 class CodeWriter
   attr_reader :out_file, :stack_point
+  # |  RAM[0]  | RAM[256] | RAM[257] | RAM[258] | RAM[259] | RAM[260] |
+  # |     266  |      -1  |       0  |       0  |       0  |      -1  |
+  # | RAM[261] | RAM[262] | RAM[263] | RAM[264] | RAM[265] |
+  # |       0  |      -1  |       0  |       0  |     -91  |
 
   START_OF_TEMP_ADDRESS = 5
 
