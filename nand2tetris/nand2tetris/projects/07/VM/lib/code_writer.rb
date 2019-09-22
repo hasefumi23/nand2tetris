@@ -1,5 +1,21 @@
+# RAM[0] SP スタックポインタ：スタックの最上位の次を指す。 
+# RAM[1]     LCL  現在のVM関数におけるlocalセグメントの ベースアドレスを指す。 
+# RAM[2]     ARG  現在のVM関数におけるargumentセグメントの ベースアドレスを指す。 
+# RAM[3]     THIS 現在の（ヒープ内における）thisセグメントの ベースアドレスを指す。 
+# RAM[4]     THAT 現在の（ヒープ内における）thatセグメントの ベースアドレスを指す。 
+# RAM[5–12]       tempセグメントの値を保持する。 
+# RAM[13–15]      汎用的なレジスタとしてVM実装で用いることができる。
+
+# RAM[0]: 259
+# RAM[1]: 300
+# RAM[2]: 400
+# RAM[3]: 3000
+# RAM[4]: 3010
+
 class CodeWriter
   attr_reader :out_file, :stack_point
+
+  START_OF_TEMP_ADDRESS = 5
 
   # 出力ファイル/ストリームを開き、 書き込む準備を行う
   def initialize(out_file)
@@ -131,20 +147,86 @@ class CodeWriter
   # 
   # C_PUSH またはC_POPコマンド をアセンブリコードに変換し、それを書き込む
   def write_push_pop(command, segment, index)
-    case segment
-    when "constant"
-      # Dレジスタに定数をセット
-      @out_file.puts("@#{index}")
-      @out_file.puts("D=A")
+    @out_file.puts("// START: write_push_pop")
+    @out_file.puts("// #{command}, #{segment}, #{index}")
+    case command
+    when "push"
+      case segment
+      when "local" ,"argument" ,"this" ,"that", "temp"
+        seg_label = segment_label(segment, index)
+        @out_file.puts("@#{index}")
+        @out_file.puts("D=A")
+        @out_file.puts("@#{seg_label}")
+        @out_file.puts("D=M+D")
 
-      # SPが指すアドレスに値を格納
+        # SPが指すアドレスに値を格納
+        @out_file.puts("@SP")
+        @out_file.puts("A=M")
+        @out_file.puts("M=D")
+
+        # 最後にSPの値をインクリメントする
+        @out_file.puts("@SP")
+        @out_file.puts("M=M+1")
+      when "constant"
+        # Dレジスタに定数をセット
+        @out_file.puts("@#{index}")
+        @out_file.puts("D=A")
+
+        # SPが指すアドレスに値を格納
+        @out_file.puts("@SP")
+        @out_file.puts("A=M")
+        @out_file.puts("M=D")
+
+        # 最後にSPの値をインクリメントする
+        @out_file.puts("@SP")
+        @out_file.puts("M=M+1")
+      end
+    when "pop"
+      seg_label = segment_label(segment, index)
+      @out_file.puts("// write_push_pop: pop #{seg_label}")
+      # スタックからPOPする
       @out_file.puts("@SP")
+      @out_file.puts("M=M-1")
       @out_file.puts("A=M")
+      @out_file.puts("D=M")
+      @out_file.puts("@13")
       @out_file.puts("M=D")
 
-      # 最後にSPの値をインクリメントする
-      @out_file.puts("@SP")
-      @out_file.puts("M=M+1")
+      @out_file.puts("@#{index}")
+      @out_file.puts("D=A")
+      @out_file.puts("@#{seg_label}")
+      # segment == temp の場合のラベルが存在しないのでアドレスを直接指定するスタイル
+      if segment == "temp"
+        @out_file.puts("D=D+A")
+      else
+        @out_file.puts("D=D+M")
+      end
+      @out_file.puts("@14")
+      @out_file.puts("M=D")
+      @out_file.puts("@13")
+      @out_file.puts("D=M")
+      @out_file.puts("@14")
+      @out_file.puts("A=M")
+      @out_file.puts("M=D")
+    end
+
+    @out_file.puts("// END: write_push_pop")
+  end
+
+  # 対象とすべきラベル群
+  # argument
+  # local
+  # temp
+  # that
+  # this
+  def segment_label(segment, index)
+    # LCLの相対アドレスをAレジスタに設定してそこにDレジスタに登録した値を設定する
+    case segment
+    when "local" then "LCL"
+    when "argument" then "ARG"
+    when "this" then "THIS"
+    when "that" then "THAT"
+    when "temp" then START_OF_TEMP_ADDRESS
     end
   end
 

@@ -51,7 +51,7 @@ class VM
       case parser.command_type
       when Parser::C_ARITHMETIC
         code_writer.write_arithmetic(current_command)
-      when Parser::C_PUSH
+      when Parser::C_PUSH, Parser::C_POP
         command, segment, index = current_command.split(" ")
         code_writer.write_push_pop(command, segment, index)
       end
