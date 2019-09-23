@@ -54,8 +54,10 @@ class Parser
     when "if-goto" then C_IF
     when "function" then C_FUNCTION
     when "return" then C_RETURN
+    when "goto" then C_GOTO
+    when "call" then C_CALL
     else
-      raise StandardError.new("Can't parse the command. Specify the correct command")
+      raise StandardError.new("Can't parse the command. Specify the correct command: #{first_command}")
     end
   end
 

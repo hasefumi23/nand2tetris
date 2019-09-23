@@ -13,7 +13,7 @@
 # RAM[4]: 3010
 
 class CodeWriter
-  attr_reader :out_file, :stack_point
+  attr_reader :out_file, :stack_point, :file_name
   # |  RAM[0]  | RAM[256] | RAM[257] | RAM[258] | RAM[259] | RAM[260] |
   # |     266  |      -1  |       0  |       0  |       0  |      -1  |
   # | RAM[261] | RAM[262] | RAM[263] | RAM[264] | RAM[265] |
@@ -24,7 +24,6 @@ class CodeWriter
   # 出力ファイル/ストリームを開き、 書き込む準備を行う
   def initialize(out_file)
     @out_file = out_file
-    @file_name = out_file.path
     @stack_point = 256 # ~ 2047
     @heap = 2048 # ~ 16383
     @memory_mapped_io = 16384 # ~ 24575
@@ -41,6 +40,8 @@ class CodeWriter
 
   # CodeWriter モジュールに新しい VM ファイルの変換が開始したことを知らせる 
   def set_file_name(file_name)
+    @out_file.puts("// file name is set: #{file_name}")
+    @file_name = file_name
   end
 
   # 与えられた算術コマンドをアセンブリコードに変換し、それを書き込む
@@ -255,7 +256,7 @@ class CodeWriter
   end
 
   def write_call(function_name, num_args)
-    # Not implemented
+    @out_file.puts("// write_call is called")
   end
 
   def write_return
@@ -282,7 +283,7 @@ class CodeWriter
     #              # 関数の戻り値を別の場所へ移す
     pop_from_stack_to_d_register("M")
     @out_file.puts("@ARG")
-    @out_file.puts("A=M") # TODO:
+    @out_file.puts("A=M")
     @out_file.puts("M=D")
     # SP = ARG+1 # 呼び出し側のSPを戻す
     @out_file.puts("@ARG")
