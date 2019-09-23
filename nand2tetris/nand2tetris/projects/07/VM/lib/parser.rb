@@ -52,6 +52,8 @@ class Parser
       C_POP
     elsif commands.first == "return"
       C_RETURN
+    else
+      raise StandardError.new("Can't parse the command. Specify the correct command")
     end
   end
 

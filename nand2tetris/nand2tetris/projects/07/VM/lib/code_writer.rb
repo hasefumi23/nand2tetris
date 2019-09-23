@@ -64,28 +64,16 @@ class CodeWriter
 
   def write_add_sub_and_or_command(operator)
     # オペレータの右辺の値を取り出してDレジスタにセット
-    # POP
-    @out_file.puts("@SP")
-    @out_file.puts("M=M-1")
-    @out_file.puts("A=M")
-    @out_file.puts("D=M")
+    pop_from_stack_to_d_register("M")
 
     # オペレータの左辺の値を取り出してDレジスタにセット
-    # POP
-    @out_file.puts("@SP")
-    @out_file.puts("M=M-1")
-    @out_file.puts("A=M")
+    pop_from_stack_to_d_register("M#{operator}D")
 
     # 計算結果をもともと左辺が格納されていたアドレスに格納する
-    # PUSH
-    @out_file.puts("D=M#{operator}D")
-    @out_file.puts("@SP")
-    @out_file.puts("A=M")
-    @out_file.puts("M=D")
+    put_value_on_stack_of("D")
 
     # 最後にSPの値をインクリメントする
-    @out_file.puts("@SP")
-    @out_file.puts("M=M+1")
+    increment_sp_address
   end
 
   def write_neg_or_not_command(operator)
@@ -96,8 +84,7 @@ class CodeWriter
     @out_file.puts("M=#{operator}M")
 
     # 最後にSPの値をインクリメントする
-    @out_file.puts("@SP")
-    @out_file.puts("M=M+1")
+    increment_sp_address
   end
 
   def write_comparison_command(comparison_mnemonic)
@@ -105,18 +92,11 @@ class CodeWriter
     count = eval(count_var_name)
 
     # オペレータの右辺の値を取り出してDレジスタにセット
-    # POP
-    @out_file.puts("@SP")
-    @out_file.puts("M=M-1")
-    @out_file.puts("A=M")
-    @out_file.puts("D=M")
+    pop_from_stack_to_d_register("M")
 
     # オペレータの左辺の値を取り出してDレジスタにセット
-    # POP
-    @out_file.puts("@SP")
-    @out_file.puts("M=M-1")
-    @out_file.puts("A=M")
-    @out_file.puts("D=M-D")
+    # D レジスタには (左辺 - 右辺) の計算結果を格納する
+    pop_from_stack_to_d_register("M-D")
 
     # 左辺と右辺が等しかったらジャンプ
     @out_file.puts("@TRUE_ADDRESS_#{comparison_mnemonic}#{count}")
@@ -125,26 +105,20 @@ class CodeWriter
     # falseだったらジャンプせずに処理続行
     # 計算結果をもともと左辺が格納されていたアドレスに格納する
     # PUSH
-    @out_file.puts("@SP")
-    @out_file.puts("A=M")
-    @out_file.puts("M=0")
+    put_value_on_stack_of("0")
     @out_file.puts("@END_ADDRESS_#{comparison_mnemonic}#{count}")
     @out_file.puts("0;JMP")
 
     # 論理演算の結果がtrueだった時のジャンプ先のラベル
     @out_file.puts("(TRUE_ADDRESS_#{comparison_mnemonic}#{count})")
     # 計算結果をもともと左辺が格納されていたアドレスに格納する
-    # PUSH
-    @out_file.puts("@SP")
-    @out_file.puts("A=M")
-    @out_file.puts("M=-1")
+    put_value_on_stack_of("-1")
 
     # if文のendに相当するラベル
     @out_file.puts("(END_ADDRESS_#{comparison_mnemonic}#{count})")
 
     # 最後にSPの値をインクリメントする
-    @out_file.puts("@SP")
-    @out_file.puts("M=M+1")
+    increment_sp_address
 
     eval("#{count_var_name} += 1")
   end
@@ -171,10 +145,7 @@ class CodeWriter
     seg_label = segment_label(segment, index)
     @out_file.puts("// write_push_pop: pop #{seg_label}")
     # スタックからPOPする
-    @out_file.puts("@SP")
-    @out_file.puts("M=M-1")
-    @out_file.puts("A=M")
-    @out_file.puts("D=M")
+    pop_from_stack_to_d_register("M")
     # @13はPOPした値の一時退避用のアドレス
     @out_file.puts("@13")
     @out_file.puts("M=D")
@@ -184,16 +155,13 @@ class CodeWriter
     @out_file.puts("@#{seg_label}")
 
     # POP先の絶対アドレスをDに格納する
-    if segment == "temp"
-      # segment == temp の場合のラベルが存在しないのでアドレスを直接指定するスタイル
-      @out_file.puts("D=D+A")
-    elsif segment == "pointer"
-      @out_file.puts("D=A")
-    elsif segment == "static"
-      @out_file.puts("D=A")
-    else
-      @out_file.puts("D=D+M")
+    expression = case segment
+    # segment == temp の場合のラベルが存在しないのでアドレスを直接指定するスタイル
+    when "temp" then "D=D+A"
+    when "pointer", "static" then "D=A"
+    else "D=D+M"
     end
+    @out_file.puts(expression)
 
     # @14はPOP先のアドレスの一時退避用のアドレス
     @out_file.puts("@14")
@@ -213,39 +181,56 @@ class CodeWriter
       @out_file.puts("D=A")
       @out_file.puts("@#{seg_label}")
 
-      case segment
-      when "temp" then @out_file.puts("D=A+D")
-      when "pointer" then @out_file.puts("D=A")
-      when "static" then @out_file.puts("D=A")
-      else @out_file.puts("D=M+D")
+      expression = case segment
+      when "temp" then "D=A+D"
+      when "pointer" then "D=A"
+      when "static" then "D=A"
+      else "D=M+D"
       end
+      @out_file.puts(expression)
 
       # PUSH対象のアドレスから値を取り出す
       @out_file.puts("A=D")
       @out_file.puts("D=M")
 
       # SPが指すアドレスに値を格納
-      @out_file.puts("@SP")
-      @out_file.puts("A=M")
-      @out_file.puts("M=D")
+      put_value_on_stack_of("D")
 
       # 最後にSPの値をインクリメントする
-      @out_file.puts("@SP")
-      @out_file.puts("M=M+1")
+      increment_sp_address
     when "constant"
       # Dレジスタに定数をセット
       @out_file.puts("@#{index}")
       @out_file.puts("D=A")
 
       # SPが指すアドレスに値を格納
-      @out_file.puts("@SP")
-      @out_file.puts("A=M")
-      @out_file.puts("M=D")
+      put_value_on_stack_of("D")
 
       # 最後にSPの値をインクリメントする
-      @out_file.puts("@SP")
-      @out_file.puts("M=M+1")
+      increment_sp_address
     end
+  end
+
+  # 現在のSPが指すアドレスに register で指定された値を格納する
+  def put_value_on_stack_of(register)
+    @out_file.puts("@SP")
+    @out_file.puts("A=M")
+    @out_file.puts("M=#{register}")
+  end
+
+  # SPの値をインクリメントする
+  # PUSH 操作を行った後に呼ばれる
+  def increment_sp_address
+    @out_file.puts("@SP")
+    @out_file.puts("M=M+1")
+  end
+
+  # expressionには D, D-1, D+M などの文字列が渡されることを期待している
+  def pop_from_stack_to_d_register(expression)
+    @out_file.puts("@SP")
+    @out_file.puts("M=M-1")
+    @out_file.puts("A=M")
+    @out_file.puts("D=#{expression}")
   end
 
   # 対象とすべきラベル群
