@@ -52,6 +52,7 @@ class Parser
     when "return" then C_RETURN
     when "label" then C_LABEL
     when "if-goto" then C_IF
+    when "goto" then C_GOTO
     else
       raise StandardError.new("Can't parse the command. Specify the correct command")
     end

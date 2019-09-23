@@ -60,6 +60,8 @@ class VM
         code_writer.write_label(segment)
       when Parser::C_IF
         code_writer.write_if(segment)
+      when Parser::C_GOTO
+        code_writer.write_goto(segment)
       else raise StandardError.new("Can't parse!")
       end
     end

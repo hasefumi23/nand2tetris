@@ -249,6 +249,11 @@ class CodeWriter
     @out_file.puts("D;JGT")
   end
 
+  def write_goto(label)
+    @out_file.puts("@#{label}")
+    @out_file.puts("0;JMP")
+  end
+
   # 対象とすべきラベル群
   def segment_label(segment, index)
     # LCLの相対アドレスをAレジスタに設定してそこにDレジスタに登録した値を設定する
