@@ -254,6 +254,78 @@ class CodeWriter
     @out_file.puts("0;JMP")
   end
 
+  def write_call(function_name, num_args)
+    # Not implemented
+  end
+
+  def write_return
+    frame_address = 13
+    return_address = 14
+    # FRAME = LCL # FRAMEは一時変数
+    @out_file.puts("@LCL")
+    @out_file.puts("D=M")
+    @out_file.puts("@#{frame_address}")
+    @out_file.puts("M=D")
+
+    # RET = *(FRAME-5) # なんのための-5なのかをはっきりさせる
+    #                  # 一時変数に保存されている
+    #                  # リターンアドレスを取得する
+    @out_file.puts("@#{frame_address}")
+    @out_file.puts("D=M")
+    @out_file.puts("@5")
+    @out_file.puts("D=D-A")
+    @out_file.puts("A=D")
+    @out_file.puts("D=M")
+    @out_file.puts("@#{return_address}")
+    @out_file.puts("M=D")
+    # *ARG = pop() # 関数の呼び出し側のために、
+    #              # 関数の戻り値を別の場所へ移す
+    pop_from_stack_to_d_register("M")
+    @out_file.puts("@ARG")
+    @out_file.puts("A=M") # TODO:
+    @out_file.puts("M=D")
+    # SP = ARG+1 # 呼び出し側のSPを戻す
+    @out_file.puts("@ARG")
+    @out_file.puts("D=M")
+    @out_file.puts("@SP")
+    @out_file.puts("M=D+1")
+    %w[THAT THIS ARG LCL].each.with_index(1) do |sym, i|
+      # THAT = *(FRAME-1) # 呼び出し側のTHATを戻す
+      # THIS = *(FRAME-2) # 呼び出し側のTHISを戻す
+      # ARG = *(FRAME-3)
+      # LCL = *(FRAME-4)
+      @out_file.puts("@#{frame_address}")
+      @out_file.puts("D=M")
+      @out_file.puts("@#{i}")
+      @out_file.puts("D=D-A")
+      @out_file.puts("A=D")
+      @out_file.puts("D=M")
+      @out_file.puts("@#{sym}")
+      @out_file.puts("M=D")
+    end
+
+    # goto RET
+    @out_file.puts("@#{return_address}")
+    @out_file.puts("A=M")
+    @out_file.puts("0;JMP")
+  end
+
+  def write_function(function_name, nums_local)
+    @out_file.puts("// START write_function: #{function_name}, #{nums_local}")
+
+    @out_file.puts("(#{function_name})")
+    nums_local.to_i.times do |num|
+      # 現在のLCLのアドレス+numのアドレスを0で初期化
+      @out_file.puts("@LCL")
+      @out_file.puts("D=M")
+      @out_file.puts("@#{num}")
+      @out_file.puts("A=D+A")
+      @out_file.puts("M=0")
+    end
+
+    @out_file.puts("// END write_function")
+  end
+
   # 対象とすべきラベル群
   def segment_label(segment, index)
     # LCLの相対アドレスをAレジスタに設定してそこにDレジスタに登録した値を設定する
