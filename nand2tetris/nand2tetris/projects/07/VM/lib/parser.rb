@@ -43,15 +43,15 @@ class Parser
   def command_type
     # C_ARITHMETIC、 C_PUSH、 C_POP、 C_LABEL、 C_GOTO、C_IF、 C_FUNCTION、 C_RETURN、 C_CALL
     commands = @current_command.split(" ")
+    first_command = commands.first
 
-    if %w[add sub neg eq gt lt and or not].include?(commands.first)
-      C_ARITHMETIC
-    elsif commands.first == "push"
-      C_PUSH
-    elsif commands.first == "pop"
-      C_POP
-    elsif commands.first == "return"
-      C_RETURN
+    case first_command
+    when *%w[add sub neg eq gt lt and or not] then C_ARITHMETIC
+    when "push" then C_PUSH
+    when "pop" then C_POP
+    when "return" then C_RETURN
+    when "label" then C_LABEL
+    when "if-goto" then C_IF
     else
       raise StandardError.new("Can't parse the command. Specify the correct command")
     end

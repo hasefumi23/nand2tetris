@@ -233,6 +233,22 @@ class CodeWriter
     @out_file.puts("D=#{expression}")
   end
 
+  def write_init
+    @out_file.puts("Sys.init")
+    raise NotImplementedError.new("write_init")
+  end
+
+  def write_label(label)
+    # lebel コマンドを行うアセンブリコードを書く
+    @out_file.puts("(#{label})")
+  end
+
+  def write_if(label)
+    pop_from_stack_to_d_register("M")
+    @out_file.puts("@#{label}")
+    @out_file.puts("D;JGT")
+  end
+
   # 対象とすべきラベル群
   def segment_label(segment, index)
     # LCLの相対アドレスをAレジスタに設定してそこにDレジスタに登録した値を設定する
