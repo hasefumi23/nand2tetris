@@ -24,6 +24,7 @@ class CodeWriter
   # 出力ファイル/ストリームを開き、 書き込む準備を行う
   def initialize(out_file)
     @out_file = out_file
+    @out_file_name = out_file.path
     @stack_point = 256 # ~ 2047
     @heap = 2048 # ~ 16383
     @memory_mapped_io = 16384 # ~ 24575
@@ -36,6 +37,19 @@ class CodeWriter
     @jne_count = 0
     @jle_count = 0
     @jmp_count = 0
+
+    @nest_count = 0
+
+    # @out_file.puts("SP = 256")
+    # @out_file.puts("call Sys.init")
+    # 実行するにあたってSPを初期化する
+    @out_file.puts("@256")
+    @out_file.puts("D=A")
+    @out_file.puts("@SP")
+    @out_file.puts("M=D")
+
+    # Sys.initをcallする
+    write_call("Sys.init", 0)
   end
 
   # CodeWriter モジュールに新しい VM ファイルの変換が開始したことを知らせる 
@@ -71,7 +85,7 @@ class CodeWriter
     pop_from_stack_to_d_register("M#{operator}D")
 
     # 計算結果をもともと左辺が格納されていたアドレスに格納する
-    put_value_on_stack_of("D")
+    push_on_stack_value_of("D")
 
     # 最後にSPの値をインクリメントする
     increment_sp_address
@@ -95,8 +109,9 @@ class CodeWriter
     # オペレータの右辺の値を取り出してDレジスタにセット
     pop_from_stack_to_d_register("M")
 
-    # オペレータの左辺の値を取り出してDレジスタにセット
-    # D レジスタには (左辺 - 右辺) の計算結果を格納する
+    # M-D = x-y 
+    # D-M = y-x 
+    # JEQはどちらでもいい
     pop_from_stack_to_d_register("M-D")
 
     # 左辺と右辺が等しかったらジャンプ
@@ -106,14 +121,14 @@ class CodeWriter
     # falseだったらジャンプせずに処理続行
     # 計算結果をもともと左辺が格納されていたアドレスに格納する
     # PUSH
-    put_value_on_stack_of("0")
+    push_on_stack_value_of("0")
     @out_file.puts("@END_ADDRESS_#{comparison_mnemonic}#{count}")
     @out_file.puts("0;JMP")
 
     # 論理演算の結果がtrueだった時のジャンプ先のラベル
     @out_file.puts("(TRUE_ADDRESS_#{comparison_mnemonic}#{count})")
     # 計算結果をもともと左辺が格納されていたアドレスに格納する
-    put_value_on_stack_of("-1")
+    push_on_stack_value_of("-1")
 
     # if文のendに相当するラベル
     @out_file.puts("(END_ADDRESS_#{comparison_mnemonic}#{count})")
@@ -195,7 +210,7 @@ class CodeWriter
       @out_file.puts("D=M")
 
       # SPが指すアドレスに値を格納
-      put_value_on_stack_of("D")
+      push_on_stack_value_of("D")
 
       # 最後にSPの値をインクリメントする
       increment_sp_address
@@ -205,7 +220,7 @@ class CodeWriter
       @out_file.puts("D=A")
 
       # SPが指すアドレスに値を格納
-      put_value_on_stack_of("D")
+      push_on_stack_value_of("D")
 
       # 最後にSPの値をインクリメントする
       increment_sp_address
@@ -213,7 +228,7 @@ class CodeWriter
   end
 
   # 現在のSPが指すアドレスに register で指定された値を格納する
-  def put_value_on_stack_of(register)
+  def push_on_stack_value_of(register)
     @out_file.puts("@SP")
     @out_file.puts("A=M")
     @out_file.puts("M=#{register}")
@@ -240,18 +255,21 @@ class CodeWriter
   end
 
   def write_label(label)
+    @out_file.puts("// write_label is called")
     # lebel コマンドを行うアセンブリコードを書く
-    @out_file.puts("(#{label})")
+    @out_file.puts("(#{@out_file_name}$#{label})")
   end
 
   def write_if(label)
+    @out_file.puts("// write_if is called")
     pop_from_stack_to_d_register("M")
-    @out_file.puts("@#{label}")
-    @out_file.puts("D;JGT")
+    @out_file.puts("@#{@out_file_name}$#{label}")
+    @out_file.puts("D;JLT")
   end
 
   def write_goto(label)
-    @out_file.puts("@#{label}")
+    @out_file.puts("// write_goto is called")
+    @out_file.puts("@#{@out_file_name}$#{label}")
     @out_file.puts("0;JMP")
   end
 
