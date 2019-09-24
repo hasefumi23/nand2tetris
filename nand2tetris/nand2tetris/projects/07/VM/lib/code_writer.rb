@@ -321,7 +321,7 @@ class CodeWriter
     @out_file.puts("0;JMP")
 
     # (return-address)  # リターンアドレスのためのラベルを宣言する
-    @out_file.puts("(#{return_address_name}$#{@nest_count})")
+    @out_file.puts("(#{return_address_name})")
     @nest_count += 1
   end
 
