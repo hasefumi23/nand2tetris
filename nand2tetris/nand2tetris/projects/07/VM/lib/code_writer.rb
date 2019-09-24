@@ -257,6 +257,54 @@ class CodeWriter
 
   def write_call(function_name, num_args)
     @out_file.puts("// write_call is called")
+    # push return-address #（ 以下のラベル宣言を用いる）
+    return_address_name = "RETURN_ADDRESS_#{function_name}$#{@nest_count}"
+    @out_file.puts("@#{return_address_name}")
+    @out_file.puts("D=A")
+    push_on_stack_value_of("D")
+    increment_sp_address
+
+    # push LCL # 関数の呼び出し側のLCLを格納する
+    # push ARG # 関数の呼び出し側のARGを格納する
+    # push THIS # 関数の呼び出し側のTHISを格納する
+    # push THAT # 関数の呼び出し側のTHATを格納する
+    %w[LCL ARG THIS THAT].each do |label|
+      @out_file.puts("@#{label}")
+      @out_file.puts("D=M")
+      push_on_stack_value_of("D")
+      increment_sp_address
+    end
+
+    # ARG = SP-n-5 # ARGを別の場所に移す（n＝引数の数）
+    @out_file.puts("@SP")
+    @out_file.puts("D=M")
+    @out_file.puts("@#{num_args}")
+    @out_file.puts("D=D-A")
+    @out_file.puts("@5")
+    @out_file.puts("D=D-A")
+    @out_file.puts("@ARG")
+    @out_file.puts("M=D")
+
+    # LCL = SP # LCLを別の場所に移す
+    @out_file.puts("@SP")
+    @out_file.puts("D=M")
+    @out_file.puts("@LCL")
+    @out_file.puts("M=D")
+
+    num_args.to_i.times do |num|
+      @out_file.puts("@0")
+      @out_file.puts("D=A")
+      push_on_stack_value_of("D")
+      increment_sp_address
+    end
+
+    # goto f # 制御を移す
+    @out_file.puts("@#{function_name}")
+    @out_file.puts("0;JMP")
+
+    # (return-address)  # リターンアドレスのためのラベルを宣言する
+    @out_file.puts("(#{return_address_name}$#{@nest_count})")
+    @nest_count += 1
   end
 
   def write_return
