@@ -38,3 +38,12 @@ if (x < 153)
   - ソースファイルの Xxx.jack に対して、あなたの実装したトークナイザは XxxT.xml という名前のファイルを出力するようにする
     - すべてのテストプログラムをトークン化し、本書が提供する TextComparer というツールを用いて、比較用の.xml ファイルと比較する
   - トークナイザが生成する出力ファイルは比較用のファイルと同じ名前になるため、比較用ファイルを別ディレクトリに移動しておくとよいだろう
+
+#### Command memo
+
+```bash
+./lib/jack_analyzer.rb ../Square/Main.jack > MainT.xml | cl
+./lib/jack_analyzer.rb ./../Square/Square.jack > SquareT.xml
+./lib/jack_analyzer.rb ./../Square/SquareGame.jack > SquareGameT.xml
+diff ./SquareGameT.xml ../Square/SquareGameT.xml
+```

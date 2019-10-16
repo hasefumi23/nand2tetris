@@ -5,6 +5,7 @@ class JackTokenizer
   class CommentError < StandardError; end
 
   attr_accessor :current_token
+  # DEBUG = true
   DEBUG = false
 
   KEY_WORDS = %w[class constructor function method field static var int char boolean void true false null this let do if else while return]
@@ -14,32 +15,25 @@ class JackTokenizer
   # 判断する処理だが、ロジックが必要以上に複雑になり可読性も落ちるため
   # 妥協して、コメントは可能な限り最初に全部削除する
   # ただし複数行に渡るコメントは未削除
-  def initialize(file_name)
-    @io = File.open(file_name)
+  def initialize(file_path)
+    @io = File.open(file_path)
     @line = nil
     @current_line = ''
     @chars = []
-    # @current_words = []
-    # 単純に空白文字でsplitした文字列
-    # @splitted_words = []
-    # 空白では区切れない一つ以上のトークンを含んだ文字列
-    # ex) (a+b-c)など
-    # @current_word = ''
-    # 最小のトークン
     @current_token = nil
   end
 
   # 入力にまだトークンは存在するか？
-  # @current_token.nil? == true はまだ一度もadvanceが呼ばれていないことを意味する
-  # @next_token.nil? == false は次のトークンが存在することを意味する
   def has_more_tokens?
-    true unless @io.eof?
+    p "@io.eof?: #{@io.eof?}, @chars.empty?: #{@chars&.inspect}" if DEBUG
+    !@io.eof? || !@chars.nil? || !@chars&.empty?
   end
 
   def initial_parse
     begin
-      return nil if @io.eof?
-      @line = @io.gets.strip
+      @line = @io.gets&.strip
+      return nil if @line.nil?
+
       @line.gsub!(Regexp.new("//.*"), "")
       p "@line: #{@line}" if DEBUG
     end while @line.nil? || @line.empty?
@@ -50,26 +44,33 @@ class JackTokenizer
   # 入力から次のトークンを取得し、それを現在のトークン（現トークン）とする
   # このルーチンは、hasMoreTokens()がtrueの場合のみ呼び出すことができる
   # また、最初は現トークンは設定されていない
-  def tokenize
-    if @chars.empty?
+  def advance
+    if @chars&.empty?
       @chars = initial_parse
     end
 
-    @current_token = tokenize_line
+    tokened = tokenize_line
+    p "tokened: #{tokened.inspect}" if DEBUG
+    # @io.eof? == falseかつ空行が続く場合、NoMethodErrorが発生するのでそれを避けるためにnilを返す
+    return nil if tokened.nil?
+
+    @current_token = tokened
     @current_token
   end
 
   def tokenize_line
+    # binding.pry
     word = ""
-    in_string_constant = false
-    tokened = false
-
     while true
+      p "@chars: #{@chars.inspect}" if DEBUG
+
       # "test;"のようなIDENTIFIERとSYMBOLの組み合わせを判定する
       if !word.empty? && SYMBOLS.include?(@chars[0])
         return word
       end
 
+      # ファイルの最後に空行が続く場合、@charsがnilになっていてもここに到達する可能性がある
+      return nil if @chars.nil?
       char = @chars.shift
 
       if char == " "
@@ -92,7 +93,6 @@ class JackTokenizer
           char = @chars.shift
           word += char
         end until char == '"'
-        tokened = true
       end
 
       if word == "/" && @chars[0] == "*"
@@ -126,52 +126,25 @@ class JackTokenizer
     word
   end
 
-  def tokened?(word)
-  end
-
-  def advance
-    token = nil
-    until token || @io.eof?
-      token = tokenize
-    end
-    return token
-  end
-
-  def treat_comment_part(word)
-    # コメント部分はここで全部弾く
-    return true if word == "//"
-    if ["/*", "/**"].include?(word)
-      @in_comment_part = true
-      # raise CommentError.new("Comment: #{word}") 
-      return true
-    end
-
-    if word == "*/"
-      @in_comment_part = false
-      # raise CommentError.new("Comment: #{word}") 
-      return true
-    end
-  end
-
   # KEYWORD、 SYMBOL、 IDENTIFIER、 INT_CONST、 STRING_CONST
   # 現トークンの種類を返す
   def token_type
     if KEY_WORDS.include?(@current_token)
-      "KEYWORD"
+      "keyword"
     elsif SYMBOLS.include?(@current_token)
-      "SYMBOL"
+      "symbol"
     elsif @current_token.start_with?('"') && @current_token.end_with?('"')
-      "STRING_CONST"
+      "stringConstant"
     elsif @current_token =~ /^\d+$/
-      "INT_CONST"
+      "integerConstant"
     elsif @current_token =~ /^\w+$/
-      "IDENTIFIER"
+      "identifier"
     else
       raise StandardError.new("Unexpected token error: token = #{@current_token}")
     end
   end
 
-  # 現トークンのキーワードを返す。こ のルーチンは、tokenType()が KEYWORDの場合のみ呼び出すこと ができる
+  # 現トークンのキーワードを返す。このルーチンは、tokenType()がKEYWORDの場合のみ呼び出すことができる
   def keyword
     # CLASS
     # METHOD
@@ -187,30 +160,30 @@ class JackTokenizer
     # RETURN
     # TRUE、FALSE
     # NULL、THIS
-    'keword'
+    @current_token.upcase
   end
 
   # 現トークンの文字を返す
   # このルーチンは、tokenType()がSYMBOLの場合のみ呼び出すことができる
   def symbol
-    'symbol'
+    @current_token
   end
 
   # 現トークンの識別子（identiﬁer）を返す
   # このルーチンは、tokenType()がIDENTIFIERの場合のみ呼び出すことができる
   def identifier
-    'identifier'
+    @current_token
   end
 
   # 現トークンの整数の値を返す
   # このルーチンは、tokenType()がINT_CONSTの場合のみ呼び出すことができる
   def int_val
-    0
+    @current_token
   end
 
   # 現トークンの文字列を返す
   # このルーチンは、tokenType()がSTRING_CONSTの場合のみ呼び出すことができる
   def string_val
-    'string_val'
+    @current_token
   end
 end
