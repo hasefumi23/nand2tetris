@@ -4,7 +4,7 @@ require 'pry'
 class JackTokenizer
   class CommentError < StandardError; end
 
-  attr_accessor :current_token
+  # attr_accessor :current_token
   # DEBUG = true
   DEBUG = false
 
@@ -21,6 +21,22 @@ class JackTokenizer
     @current_line = ''
     @chars = []
     @current_token = nil
+  end
+
+  def current_token
+    if token_type == "stringConstant"
+      # stringConstantの場合必ず"(ダブルクオート)で囲んでいるのでそれを取り除く
+      @current_token[1..-2]
+    elsif token_type == "symbol"
+      case @current_token
+      when "<" then "&lt;"
+      when ">" then "&gt;"
+      when "&" then "&amp;"
+      else @current_token
+      end
+    else
+      @current_token
+    end
   end
 
   # 入力にまだトークンは存在するか？
