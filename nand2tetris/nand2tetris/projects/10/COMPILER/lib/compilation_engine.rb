@@ -18,6 +18,19 @@ class CompilationEngine
     puts(str)
   end
 
+  def simple_out_token
+    out("<#{@t.token_type}> #{@t.current_token} </#{@t.token_type}>")
+  end
+
+  def out_type_token
+    token = @t.current_token
+    token_type = @t.token_type
+    unless (["int", "char", "boolean"].include?(token) && token_type == "keyword") || @t.token_type == "identifier"
+      raise StandardError.new("Illegal type token: token => #{token}, token_type => #{token_type}")
+    end
+    simple_out_token
+  end
+
   # クラスをコンパイルする
   # 最初は token_type などのチェックは殆ど無しでいこう
   # バグの調査のためのデバッグ出力のみする感じで
@@ -26,22 +39,30 @@ class CompilationEngine
     token = @t.current_token
     out("<class>")
     @indent_level += 1
-    out("<#{@t.token_type}> #{@t.current_token} </#{@t.token_type}>")
+    simple_out_token
 
     @t.advance
-    out("<#{@t.token_type}> #{@t.current_token} </#{@t.token_type}>")
+    simple_out_token
 
     @t.advance
-    out("<#{@t.token_type}> #{@t.current_token} </#{@t.token_type}>")
+    simple_out_token
 
     @t.advance
-    compile_class_var_dec
+    token = @t.current_token
+    if ["static", "field"].include?(token)
+      compile_class_var_dec
+      # compile_class_var_dec内部でadvanceが呼ばれているのでtokneを入れ直す
+      token = @t.current_token
+    end
 
-    @t.advance
-    compile_subroutine
+    if ["constructor", "function", "method"].include?(token)
+      compile_subroutine
+      # compile_class_var_dec内部でadvanceが呼ばれているのでtokneを入れ直す
+      token = @t.current_token
+    end
 
-    @t.advance
-    out("<#{@t.token_type}> #{@t.current_token} </#{@t.token_type}>")
+    # @t.advance
+    simple_out_token
 
     @indent_level -= 1
     out("</class>")
@@ -49,20 +70,39 @@ class CompilationEngine
   end
 
   # スタティック宣言またはフィールド宣言をコンパイルする
+  # (’static’ | ’field’) type varName (’,’ varName)* ’;’
   def compile_class_var_dec
     token = @t.current_token
-    unless ["static", "field"].include?(token)
-      return 
-    end
+    return unless ["static", "field"].include?(token)
 
     out("<classVarDec>")
     @indent_level += 1
-    out("<#{@t.token_type}> #{@t.current_token} </#{@t.token_type}>")
-    until token == ";"
-      @t.advance
-      token = @t.current_token
-      out("<#{@t.token_type}> #{@t.current_token} </#{@t.token_type}>")
-    end 
+
+    # (’static’ | ’field’)
+    simple_out_token
+
+    # type
+    @t.advance
+    out_type_token
+
+    # varName
+    @t.advance
+    simple_out_token
+
+    @t.advance
+    token = @t.current_token
+    if token == ","
+      simple_out_token
+      begin 
+        # (’,’ varName)* ’;’
+        @t.advance
+        token = @t.current_token
+        simple_out_token
+      end until token == ";"
+    else
+      simple_out_token
+    end
+
     @indent_level -= 1
     out("</classVarDec>")
 
@@ -71,17 +111,60 @@ class CompilationEngine
   end
 
   # メソッド、ファンクション、コンストラクタをコンパイルする
-  # FIXME: not implemented
   def compile_subroutine
     token = @t.current_token
     return unless ["constructor", "function", "method"].include?(token)
 
-    until token == ";"
+    out("<subroutine>")
+    @indent_level += 1
+
+    # (’constructor’ | ’function’ | ’method’)
+    simple_out_token
+
+    # (’void’ | type) subroutineName ’(’
+    3.times {
+      @t.advance
+      simple_out_token
+    }
+
+    out("<parameterList>")
+    @indent_level += 1
+    # FIXME: from here
+    @t.advance
+    token = @t.current_token
+    unless token == ")"
+      # (type varName)
+      out_type_token
+      @t.advance
+      simple_out_token
+
+      @t.advance
+
+      while @t.current_token == ","
+        simple_out_token
+        @t.advance
+        simple_out_token
+        @t.advance
+        simple_out_token
+        @t.advance
+      end
+    end
+
+    # ’)’
+    @indent_level -= 1
+    out("</parameterList>")
+    simple_out_token
+
+    out("<subroutineBody>")
+    until token == "}"
       @t.advance
       token = @t.current_token
     end 
-    out("compile_subroutine is called")
+    out("</subroutineBody>")
+    @indent_level -= 1
+    out("</subroutine>")
 
+    @t.advance
     compile_subroutine
   end
 
