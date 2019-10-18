@@ -22,4 +22,4 @@ class JackAnalyzer
   end
 end
 
-JackAnalyzer.run
+# JackAnalyzer.run

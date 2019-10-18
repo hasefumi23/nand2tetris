@@ -4,17 +4,19 @@ require 'pry'
 class JackTokenizer
   class CommentError < StandardError; end
 
-  # attr_accessor :current_token
   # DEBUG = true
   DEBUG = false
 
   KEY_WORDS = %w[class constructor function method field static var int char boolean void true false null this let do if else while return]
   SYMBOLS = %w[{ } ( ) [ ] . , ; + - * / & | < > = ~]
 
-  # 理想は一文字ずつ読み込んで都度判定ロジックを走らせてトークンかコメントかを
-  # 判断する処理だが、ロジックが必要以上に複雑になり可読性も落ちるため
-  # 妥協して、コメントは可能な限り最初に全部削除する
-  # ただし複数行に渡るコメントは未削除
+  # return values of token_type
+  KEYWORD = "keyword"
+  SYMBOL = "symbol"
+  STRING_CONSTANT = "stringConstant"
+  INTEGER_CONSTANT = "integerConstant"
+  IDENTIFIER = "identifier"
+
   def initialize(file_path)
     @io = File.open(file_path)
     @line = nil
@@ -146,15 +148,15 @@ class JackTokenizer
   # 現トークンの種類を返す
   def token_type
     if KEY_WORDS.include?(@current_token)
-      "keyword"
+      KEYWORD
     elsif SYMBOLS.include?(@current_token)
-      "symbol"
+      SYMBOL
     elsif @current_token.start_with?('"') && @current_token.end_with?('"')
-      "stringConstant"
+      STRING_CONSTANT
     elsif @current_token =~ /^\d+$/
-      "integerConstant"
+      INTEGER_CONSTANT
     elsif @current_token =~ /^\w+$/
-      "identifier"
+      IDENTIFIER
     else
       raise StandardError.new("Unexpected token error: token = #{@current_token}")
     end
