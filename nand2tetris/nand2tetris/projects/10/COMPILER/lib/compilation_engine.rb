@@ -110,26 +110,9 @@ class CompilationEngine
     compile_class_var_dec
   end
 
-  # メソッド、ファンクション、コンストラクタをコンパイルする
-  def compile_subroutine
-    token = @t.current_token
-    return unless ["constructor", "function", "method"].include?(token)
-
-    out("<subroutine>")
-    @indent_level += 1
-
-    # (’constructor’ | ’function’ | ’method’)
-    simple_out_token
-
-    # (’void’ | type) subroutineName ’(’
-    3.times {
-      @t.advance
-      simple_out_token
-    }
-
+  def out_parameter_list
     out("<parameterList>")
     @indent_level += 1
-    # FIXME: from here
     @t.advance
     token = @t.current_token
     unless token == ")"
@@ -154,14 +137,38 @@ class CompilationEngine
     @indent_level -= 1
     out("</parameterList>")
     simple_out_token
+  end
 
+  def out_subroutine_body
     out("<subroutineBody>")
+
+    token = @t.current_token
     until token == "}"
       @t.advance
       token = @t.current_token
     end 
     out("</subroutineBody>")
     @indent_level -= 1
+  end
+
+  # メソッド、ファンクション、コンストラクタをコンパイルする
+  def compile_subroutine
+    token = @t.current_token
+    return unless ["constructor", "function", "method"].include?(token)
+
+    out("<subroutine>")
+    @indent_level += 1
+
+    # (’constructor’ | ’function’ | ’method’)
+    simple_out_token
+    # (’void’ | type) subroutineName ’(’
+    3.times {
+      @t.advance
+      simple_out_token
+    }
+
+    out_parameter_list
+    out_subroutine_body
     out("</subroutine>")
 
     @t.advance
