@@ -35,7 +35,6 @@ class CompilationEngine
     out("<#{@t.token_type}> #{@t.current_token} </#{@t.token_type}>")
 
     @t.advance
-    @indent_level += 1
     compile_class_var_dec
 
     @t.advance
@@ -53,15 +52,19 @@ class CompilationEngine
   def compile_class_var_dec
     token = @t.current_token
     unless ["static", "field"].include?(token)
-      @indent_level -= 1
       return 
     end
 
+    out("<classVarDec>")
+    @indent_level += 1
+    out("<#{@t.token_type}> #{@t.current_token} </#{@t.token_type}>")
     until token == ";"
       @t.advance
       token = @t.current_token
+      out("<#{@t.token_type}> #{@t.current_token} </#{@t.token_type}>")
     end 
-    out("compile_class_var_dec is called")
+    @indent_level -= 1
+    out("</classVarDec>")
 
     @t.advance
     compile_class_var_dec
