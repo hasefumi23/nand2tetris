@@ -11,7 +11,7 @@ class Square {
   }
 
   method void disposeA(int num, char str) {
-    do Memory.deAlloc(this);
+    var int total;
     return;
   }
 }
@@ -76,6 +76,24 @@ class Square {
     </parameterList>
     <symbol> ) </symbol>
     <subroutineBody>
+      <symbol> { </symbol>
+      <statements>
+        <doStatement>
+          <keyword> do </keyword>
+          <identifier> Memory </identifier>
+          <symbol> . </symbol>
+          <identifier> deAlloc </identifier>
+          <symbol> ( </symbol>
+          <expressionList>
+          </expressionList>
+          <symbol> ) </symbol>
+          <symbol> ; </symbol>
+        </doStatement>
+        <returnStatement>
+          <keyword> return </keyword>
+          <symbol> ; </symbol>
+        </returnStatement>
+      </statements>
     </subroutineBody>
   </subroutine>
   <subroutine>
@@ -92,6 +110,19 @@ class Square {
     </parameterList>
     <symbol> ) </symbol>
     <subroutineBody>
+      <symbol> { </symbol>
+      <varDec>
+        <keyword> var </keyword>
+        <keyword> int </keyword>
+        <identifier> total </identifier>
+        <symbol> ; </symbol>
+      </varDec>
+      <statements>
+        <returnStatement>
+          <keyword> return </keyword>
+          <symbol> ; </symbol>
+        </returnStatement>
+      </statements>
     </subroutineBody>
   </subroutine>
   <symbol> } </symbol>
@@ -111,3 +142,12 @@ end
 #   do Memory.deAlloc(this);
 #   return;
 # }
+
+        # <letStatement>
+        #   <keyword> let </keyword>
+        #   <identifier> total </identifier>
+        #   <symbol> = </symbol>
+        #   <expression>
+        #   </expression>
+        #   <symbol> ; </symbol>
+        # </letStatement>

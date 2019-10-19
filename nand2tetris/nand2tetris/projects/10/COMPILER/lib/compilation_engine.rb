@@ -1,4 +1,4 @@
-require "pp"
+require 'pry'
 
 # class Token
 #   attr_reader :token, :
@@ -141,14 +141,62 @@ class CompilationEngine
 
   def out_subroutine_body
     out("<subroutineBody>")
+    @indent_level += 1
 
+    @t.advance
+    # "{"
+    simple_out_token
+
+    @t.advance
     token = @t.current_token
-    until token == "}"
+    while token == "var"
+      compile_var_dec
       @t.advance
       token = @t.current_token
-    end 
-    out("</subroutineBody>")
+    end
+
+    out("<statements>")
+    @indent_level += 1
+    # @t.advance
+    compile_statements
     @indent_level -= 1
+    out("</statements>")
+
+    # @t.advance
+    # simple_out_token
+
+    @indent_level -= 1
+    out("</subroutineBody>")
+  end
+
+  def compile_var_dec
+    out("<varDec>")
+    @indent_level += 1
+
+    simple_out_token
+
+    @t.advance
+    out_type_token
+
+    @t.advance
+    simple_out_token
+
+    @t.advance
+    token = @t.current_token
+    if token == ","
+      while token == ","
+        simple_out_token
+        @t.advance
+        simple_out_token
+        @t.advance
+      end
+    end
+
+    # token::symbol ";"
+    simple_out_token
+
+    @indent_level -= 1
+    out("</varDec>")
   end
 
   # メソッド、ファンクション、コンストラクタをコンパイルする
@@ -169,6 +217,7 @@ class CompilationEngine
 
     out_parameter_list
     out_subroutine_body
+    @indent_level -= 1
     out("</subroutine>")
 
     @t.advance
@@ -177,22 +226,104 @@ class CompilationEngine
 
   # パラメータのリスト（空の可能性もある）をコンパイルする。カッコ"()"は含まない
   def compile_parameter_list
+    out("<parameterList>")
+    @indent_level += 1
+    @t.advance
+    token = @t.current_token
+    unless token == ")"
+      # (type varName)
+      out_type_token
+      @t.advance
+      simple_out_token
 
-  end
+      @t.advance
 
-  # var 宣言をコンパイルする
-  def compile_var_dec
+      while @t.current_token == ","
+        simple_out_token
+        @t.advance
+        simple_out_token
+        @t.advance
+        simple_out_token
+        @t.advance
+      end
+    end
 
+    # ’)’
+    @indent_level -= 1
+    out("</parameterList>")
+    simple_out_token
   end
 
   # 一連の文をコンパイルする。波カッコ"{}"は含まない
   def compile_statements
+    token = @t.current_token
+    return unless %w[let if while do return].include?(token)
 
+    compile_do if token == "do"
+    compile_return if token == "return"
+
+    @t.advance
+    compile_statements
   end
 
   # do 文をコンパイルする
   def compile_do
+    out("<doStatement>")
+    @indent_level += 1
+    # 'do'
+    simple_out_token
 
+    @t.advance
+    # subroutineName | (className | varName)
+    simple_out_token
+
+    @t.advance
+    token = @t.current_token
+    case token
+    when "("
+      # '('
+      simple_out_token
+      
+      out("<expressionList>")
+      out("</expressionList>")
+      token = @t.current_token
+      until token == ")"
+        @t.advance
+        token = @t.current_token
+      end
+
+      # ')'
+      simple_out_token
+    when "."
+      # "."
+      simple_out_token
+
+      @t.advance
+      # subroutineName
+      simple_out_token
+
+      @t.advance
+      # "("
+      simple_out_token
+
+      @t.advance
+      token = @t.current_token
+      unless token == ")"
+        until token == ")"
+          @t.advance
+          token = @t.current_token
+        end
+        out("<expressionList>")
+        out("</expressionList>")
+      end
+
+      # ")"
+      simple_out_token
+    end
+    @t.advance
+    simple_out_token
+    @indent_level -= 1
+    out("</doStatement>")
   end
 
   # let 文をコンパイルする
@@ -207,7 +338,13 @@ class CompilationEngine
 
   # return 文をコンパイルする
   def compile_return
-    
+    out("<returnStatement>")
+    @indent_level += 1
+    simple_out_token
+    @t.advance
+    simple_out_token
+    @indent_level -= 1
+    out("</returnStatement>")
   end
 
   # if 文をコンパイルする
@@ -227,7 +364,7 @@ class CompilationEngine
   # そのためには、ひとつ先のトークンを読み込み、
   # そのトークンが“[”か“(”か“.”のどれに該当するかを調べれば、現トークンの種類を決定することができる
   # 他のトークンの場合は現トークンに含まないので、先読みを行う必要はない
-  def compile_expression
+  def compile_term
     # やや複雑なので最初の段階では実装する必要はない
   end
 
