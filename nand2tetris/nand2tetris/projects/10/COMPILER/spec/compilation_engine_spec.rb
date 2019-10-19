@@ -12,6 +12,11 @@ class Square {
 
   method void disposeA(int num, char str) {
     var int total;
+    let total = num + str;
+    while(key) {
+      let key = key;
+      do moveSquare(key);
+    }
     return;
   }
 }
@@ -118,6 +123,42 @@ class Square {
         <symbol> ; </symbol>
       </varDec>
       <statements>
+        <letStatement>
+          <keyword> let </keyword>
+          <identifier> total </identifier>
+          <symbol> = </symbol>
+          <expression>
+          </expression>
+          <symbol> ; </symbol>
+        </letStatement>
+        <whileStatement>
+          <keyword> while </keyword>
+          <symbol> ( </symbol>
+          <expression>
+          </expression>
+          <symbol> ) </symbol>
+          <symbol> { </symbol>
+          <statements>
+            <letStatement>
+              <keyword> let </keyword>
+              <identifier> key </identifier>
+              <symbol> = </symbol>
+              <expression>
+              </expression>
+              <symbol> ; </symbol>
+            </letStatement>
+            <doStatement>
+              <keyword> do </keyword>
+              <identifier> moveSquare </identifier>
+              <symbol> ( </symbol>
+              <expressionList>
+              </expressionList>
+              <symbol> ) </symbol>
+              <symbol> ; </symbol>
+            </doStatement>
+          </statements>
+          <symbol> } </symbol>
+        </whileStatement>
         <returnStatement>
           <keyword> return </keyword>
           <symbol> ; </symbol>

@@ -1,14 +1,9 @@
 require 'pry'
 
-# class Token
-#   attr_reader :token, :
-# end
-
 class CompilationEngine
   # 与えられた入力と出力に対して新しいコンパイルエンジンを
   # 生成する。次に呼ぶルーチンはcompileClass()でなければならない
   def initialize(tokenizer)
-    # JackTokenizer
     @t = tokenizer
     @indent_level = 0
   end
@@ -61,12 +56,10 @@ class CompilationEngine
       token = @t.current_token
     end
 
-    # @t.advance
     simple_out_token
 
     @indent_level -= 1
     out("</class>")
-    # ’class’ className ’{’ classVarDec* subroutineDec* ’}’
   end
 
   # スタティック宣言またはフィールド宣言をコンパイルする
@@ -110,7 +103,7 @@ class CompilationEngine
     compile_class_var_dec
   end
 
-  def out_parameter_list
+  def compile_parameter_list
     out("<parameterList>")
     @indent_level += 1
     @t.advance
@@ -124,12 +117,10 @@ class CompilationEngine
       @t.advance
 
       while @t.current_token == ","
-        simple_out_token
-        @t.advance
-        simple_out_token
-        @t.advance
-        simple_out_token
-        @t.advance
+        3.times {
+          simple_out_token
+          @t.advance
+        }
       end
     end
 
@@ -157,13 +148,9 @@ class CompilationEngine
 
     out("<statements>")
     @indent_level += 1
-    # @t.advance
     compile_statements
     @indent_level -= 1
     out("</statements>")
-
-    # @t.advance
-    # simple_out_token
 
     @indent_level -= 1
     out("</subroutineBody>")
@@ -215,7 +202,7 @@ class CompilationEngine
       simple_out_token
     }
 
-    out_parameter_list
+    compile_parameter_list
     out_subroutine_body
     @indent_level -= 1
     out("</subroutine>")
@@ -224,43 +211,17 @@ class CompilationEngine
     compile_subroutine
   end
 
-  # パラメータのリスト（空の可能性もある）をコンパイルする。カッコ"()"は含まない
-  def compile_parameter_list
-    out("<parameterList>")
-    @indent_level += 1
-    @t.advance
-    token = @t.current_token
-    unless token == ")"
-      # (type varName)
-      out_type_token
-      @t.advance
-      simple_out_token
-
-      @t.advance
-
-      while @t.current_token == ","
-        simple_out_token
-        @t.advance
-        simple_out_token
-        @t.advance
-        simple_out_token
-        @t.advance
-      end
-    end
-
-    # ’)’
-    @indent_level -= 1
-    out("</parameterList>")
-    simple_out_token
-  end
-
   # 一連の文をコンパイルする。波カッコ"{}"は含まない
   def compile_statements
     token = @t.current_token
     return unless %w[let if while do return].include?(token)
 
-    compile_do if token == "do"
-    compile_return if token == "return"
+    case token
+    when "do" then compile_do
+    when "return" then compile_return 
+    when "let" then compile_let 
+    when "while" then compile_while
+    end
 
     @t.advance
     compile_statements
@@ -308,14 +269,12 @@ class CompilationEngine
 
       @t.advance
       token = @t.current_token
-      unless token == ")"
-        until token == ")"
-          @t.advance
-          token = @t.current_token
-        end
-        out("<expressionList>")
-        out("</expressionList>")
+      until token == ")"
+        @t.advance
+        token = @t.current_token
       end
+      out("<expressionList>")
+      out("</expressionList>")
 
       # ")"
       simple_out_token
@@ -328,12 +287,76 @@ class CompilationEngine
 
   # let 文をコンパイルする
   def compile_let
-    
+    out("<letStatement>")
+    @indent_level += 1
+    # token::keyword "let"
+    simple_out_token
+    @t.advance
+    # token::not_terminal "varName"
+    simple_out_token
+
+    @t.advance
+    token = @t.current_token
+    if token == "["
+      until token == "]"
+        @t.advance
+        token = @t.current_token
+      end
+    end
+
+    # token::symbol "="
+    simple_out_token
+    out("<expression>")
+    out("</expression>")
+
+    until @t.current_token == ";"
+      @t.advance
+    end
+
+    # token::symbol ";"
+    simple_out_token
+
+    @indent_level -= 1
+    out("</letStatement>")
   end
 
   # while 文をコンパイルする
   def compile_while
+    out("<whileStatement>")
+    @indent_level += 1
 
+    # token::keyword "while"
+    simple_out_token
+
+    @t.advance
+    # token::symbol "("
+    simple_out_token
+
+    out("<expression>")
+    out("</expression>")
+    until @t.current_token == ")"
+      @t.advance
+    end
+
+    # token::symbol ")"
+    simple_out_token
+
+    @t.advance
+    # token::symbol "{"
+    simple_out_token
+
+    @t.advance
+    out("<statements>")
+    @indent_level += 1
+    compile_statements
+    @indent_level -= 1
+    out("</statements>")
+
+    # token::symbol "}"
+    simple_out_token
+
+    @indent_level -= 1
+    out("</whileStatement>")
   end
 
   # return 文をコンパイルする
