@@ -82,3 +82,54 @@ xxx 要素のボディ部への再帰呼び出し
 - class、classVarDec、subroutineDec、parameterList、subroutineBody、varDec
 - statements、whileStatement、ifStatement、returnStatement、letStatement、doStatement
 - expression、term、expressionList
+
+### プログラム構造
+
+```bash
+class ’class’ className ’{’ classVarDec*
+subroutineDec* ’}’
+classVarDec (’static’ | ’field’) type varName (’,’
+varName)* ’;’
+type ’int’ | ’char’ | ’boolean’ | className
+subroutineDec (’constructor’ | ’function’ | ’method’)
+(’void’ | type) subroutineName ’(’
+parameterList ’)’
+subroutineBody
+parameterList ((type varName) (’,’ type varName)*)?
+subroutineBody ’{’ varDec* statements ’}’
+varDec ’var’ type varName (’,’ varName)* ’;’
+className identifier
+subroutineName identifier
+varName identifier
+234 10 章 コンパイラ#1：構文解析
+文
+statements statement*
+statement letStatement | ifStatement |
+whileStatement | doStatement |
+returnStatement
+letStatement ’let’ varName (’[’ expression ’]’)? ’=’
+expression ’;’
+ifStatement ’if’ ’(’ expression ’)’ ’{’ statements
+’}’
+(’else’ ’{’ statements
+’}’)?
+whileStatement ’while’ ’(’ expression ’)’
+’{’ statements ’}’
+doStatement ’do’ subroutineCall ’;’
+returnStatement ’return’ expression? ’;’
+式
+expression term (op term)*
+term integerConstant | stringConstant |
+keywordConstant | varName | varName
+’[’ expression ’]’ | subroutineCall |
+’(’ expression ’)’ | unaryOp term
+subroutineCall subroutineName ’(’ expressionList ’)’ |
+(className | varName) ’.’
+subroutineName
+’(’ expressionList ’)’
+expressionList (expression (’,’ expression)* )?
+op ’+’ | ’-’ | ’*’ | ’/’ | ’&’ | ’|’ |
+’<’ | ’>’ | ’=’
+unaryOp ’-’ | ’~’
+KeywordConstant ’true’ | ’false’ | ’null’ | ’this’
+```

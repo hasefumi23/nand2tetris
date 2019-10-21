@@ -252,14 +252,14 @@ class CompilationEngine
     when "("
       # '('
       simple_out_token
-      
-      # FIXME: Fix later
+
+      @t.advance
       compile_expression_list
-      token = @t.current_token
-      until token == ")"
-        @t.advance
-        token = @t.current_token
-      end
+      # token = @t.current_token
+      # until token == ")"
+      #   @t.advance
+      #   token = @t.current_token
+      # end
 
       # ')'
       simple_out_token
@@ -276,12 +276,6 @@ class CompilationEngine
       simple_out_token
 
       @t.advance
-      token = @t.current_token
-      until token == ")"
-        @t.advance
-        token = @t.current_token
-      end
-      # FIXME: Fix later
       compile_expression_list
 
       # ")"
@@ -319,9 +313,9 @@ class CompilationEngine
     @t.advance
     compile_expression
 
-    until @t.current_token == ";"
-      @t.advance
-    end
+    # until @t.current_token == ";"
+    #   @t.advance
+    # end
 
     # token::symbol ";"
     simple_out_token
@@ -345,9 +339,9 @@ class CompilationEngine
     # FIXME: Fix later
     @t.advance
     compile_expression
-    until @t.current_token == ")"
-      @t.advance
-    end
+    # until @t.current_token == ")"
+    #   @t.advance
+    # end
 
     # token::symbol ")"
     simple_out_token
@@ -377,12 +371,9 @@ class CompilationEngine
     # token::keyword "return"
     simple_out_token
 
-    # FIXME: return の後に expression が来る可能性がある
-    # 現在考慮されていないので実装する
     @t.advance
     unless @t.current_token == ";"
       compile_expression
-      @t.advance
     end
 
     # token::symbol ";"
@@ -410,7 +401,7 @@ class CompilationEngine
       # FIXME: Fixe later
       @t.advance
       compile_expression
-      @t.advance
+      # @t.advance
       until @t.current_token == ")"
         @t.advance
       end
@@ -468,6 +459,7 @@ class CompilationEngine
     # やや複雑なので最初の段階では実装する必要はない
 
     simple_out_token
+    @t.advance
 
     @indent_level -= 1
     out("</term>")
@@ -476,6 +468,14 @@ class CompilationEngine
   # コンマで分離された式のリスト（空の可能性もある）をコンパイルする
   def compile_expression_list
     out("<expressionList>")
+
+    # FIXME:
+    unless @t.current_token == ")"
+      @indent_level += 1
+      compile_expression
+      @indent_level -= 1
+    end
+
     out("</expressionList>")
   end
 end

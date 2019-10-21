@@ -186,6 +186,11 @@ class Square {
               <identifier> moveSquare </identifier>
               <symbol> ( </symbol>
               <expressionList>
+                <expression>
+                  <term>
+                    <identifier> key </identifier>
+                  </term>
+                </expression>
               </expressionList>
               <symbol> ) </symbol>
               <symbol> ; </symbol>
