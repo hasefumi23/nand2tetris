@@ -5,15 +5,16 @@ class Square {
   field int x, y;
   static int size;
 
-  method void dispose() {
-    do Memory.deAlloc(this);
-    return;
+  constructor SquareGame new() {
+    let square = square;
+    let direction = direction;
+    return square;
   }
 
   method void disposeA(int num, char str) {
     var int total;
-    let total = num + str;
-    while(key) {
+    let total = num;
+    while (key) {
       let key = key;
       do moveSquare(key);
     }
@@ -80,9 +81,9 @@ class Square {
     <symbol> ; </symbol>
   </classVarDec>
   <subroutine>
-    <keyword> method </keyword>
-    <keyword> void </keyword>
-    <identifier> dispose </identifier>
+    <keyword> constructor </keyword>
+    <identifier> SquareGame </identifier>
+    <identifier> new </identifier>
     <symbol> ( </symbol>
     <parameterList>
     </parameterList>
@@ -90,22 +91,39 @@ class Square {
     <subroutineBody>
       <symbol> { </symbol>
       <statements>
-        <doStatement>
-          <keyword> do </keyword>
-          <identifier> Memory </identifier>
-          <symbol> . </symbol>
-          <identifier> deAlloc </identifier>
-          <symbol> ( </symbol>
-          <expressionList>
-          </expressionList>
-          <symbol> ) </symbol>
+        <letStatement>
+          <keyword> let </keyword>
+          <identifier> square </identifier>
+          <symbol> = </symbol>
+          <expression>
+            <term>
+              <identifier> square </identifier>
+            </term>
+          </expression>
           <symbol> ; </symbol>
-        </doStatement>
+        </letStatement>
+        <letStatement>
+          <keyword> let </keyword>
+          <identifier> direction </identifier>
+          <symbol> = </symbol>
+          <expression>
+            <term>
+              <identifier> direction </identifier>
+            </term>
+          </expression>
+          <symbol> ; </symbol>
+        </letStatement>
         <returnStatement>
           <keyword> return </keyword>
+          <expression>
+            <term>
+              <identifier> square </identifier>
+            </term>
+          </expression>
           <symbol> ; </symbol>
         </returnStatement>
       </statements>
+      <symbol> } </symbol>
     </subroutineBody>
   </subroutine>
   <subroutine>
@@ -135,6 +153,9 @@ class Square {
           <identifier> total </identifier>
           <symbol> = </symbol>
           <expression>
+            <term>
+              <identifier> num </identifier>
+            </term>
           </expression>
           <symbol> ; </symbol>
         </letStatement>
@@ -142,6 +163,9 @@ class Square {
           <keyword> while </keyword>
           <symbol> ( </symbol>
           <expression>
+            <term>
+              <identifier> key </identifier>
+            </term>
           </expression>
           <symbol> ) </symbol>
           <symbol> { </symbol>
@@ -151,6 +175,9 @@ class Square {
               <identifier> key </identifier>
               <symbol> = </symbol>
               <expression>
+                <term>
+                  <identifier> key </identifier>
+                </term>
               </expression>
               <symbol> ; </symbol>
             </letStatement>
@@ -170,6 +197,9 @@ class Square {
           <keyword> if </keyword>
           <symbol> ( </symbol>
           <expression>
+            <term>
+              <identifier> key </identifier>
+            </term>
           </expression>
           <symbol> ) </symbol>
           <symbol> { </symbol>
@@ -179,6 +209,9 @@ class Square {
               <identifier> direction </identifier>
               <symbol> = </symbol>
               <expression>
+                <term>
+                  <identifier> total </identifier>
+                </term>
               </expression>
               <symbol> ; </symbol>
             </letStatement>
@@ -192,6 +225,9 @@ class Square {
               <identifier> direction </identifier>
               <symbol> = </symbol>
               <expression>
+                <term>
+                  <identifier> key </identifier>
+                </term>
               </expression>
               <symbol> ; </symbol>
             </letStatement>
@@ -203,6 +239,7 @@ class Square {
           <symbol> ; </symbol>
         </returnStatement>
       </statements>
+      <symbol> } </symbol>
     </subroutineBody>
   </subroutine>
   <symbol> } </symbol>

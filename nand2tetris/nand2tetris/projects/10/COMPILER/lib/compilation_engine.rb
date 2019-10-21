@@ -44,13 +44,14 @@ class CompilationEngine
 
     @t.advance
     token = @t.current_token
-    if ["static", "field"].include?(token)
+    while ["static", "field"].include?(token)
       compile_class_var_dec
       # compile_class_var_dec内部でadvanceが呼ばれているのでtokneを入れ直す
       token = @t.current_token
     end
 
-    if ["constructor", "function", "method"].include?(token)
+    while ["constructor", "function", "method"].include?(token)
+      # binding.pry
       compile_subroutine
       # compile_class_var_dec内部でadvanceが呼ばれているのでtokneを入れ直す
       token = @t.current_token
@@ -152,6 +153,7 @@ class CompilationEngine
     @indent_level -= 1
     out("</statements>")
 
+    simple_out_token
     @indent_level -= 1
     out("</subroutineBody>")
   end
@@ -314,6 +316,7 @@ class CompilationEngine
     simple_out_token
 
     # FIXME: Fix later
+    @t.advance
     compile_expression
 
     until @t.current_token == ";"
@@ -340,6 +343,7 @@ class CompilationEngine
     simple_out_token
 
     # FIXME: Fix later
+    @t.advance
     compile_expression
     until @t.current_token == ")"
       @t.advance
@@ -372,7 +376,15 @@ class CompilationEngine
     @indent_level += 1
     # token::keyword "return"
     simple_out_token
+
+    # FIXME: return の後に expression が来る可能性がある
+    # 現在考慮されていないので実装する
     @t.advance
+    unless @t.current_token == ";"
+      compile_expression
+      @t.advance
+    end
+
     # token::symbol ";"
     simple_out_token
     @indent_level -= 1
@@ -396,6 +408,7 @@ class CompilationEngine
       simple_out_token
       
       # FIXME: Fixe later
+      @t.advance
       compile_expression
       @t.advance
       until @t.current_token == ")"
@@ -434,6 +447,11 @@ class CompilationEngine
   # 式をコンパイルする
   def compile_expression
     out("<expression>")
+    @indent_level += 1
+
+    compile_term
+
+    @indent_level -= 1
     out("</expression>")
   end
 
@@ -445,7 +463,14 @@ class CompilationEngine
   # そのトークンが“[”か“(”か“.”のどれに該当するかを調べれば、現トークンの種類を決定することができる
   # 他のトークンの場合は現トークンに含まないので、先読みを行う必要はない
   def compile_term
+    out("<term>")
+    @indent_level += 1
     # やや複雑なので最初の段階では実装する必要はない
+
+    simple_out_token
+
+    @indent_level -= 1
+    out("</term>")
   end
 
   # コンマで分離された式のリスト（空の可能性もある）をコンパイルする
