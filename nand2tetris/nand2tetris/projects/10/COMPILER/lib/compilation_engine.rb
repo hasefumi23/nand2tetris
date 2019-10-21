@@ -193,7 +193,7 @@ class CompilationEngine
     token = @t.current_token
     return unless ["constructor", "function", "method"].include?(token)
 
-    out("<subroutine>")
+    out("<subroutineDec>")
     @indent_level += 1
 
     # (’constructor’ | ’function’ | ’method’)
@@ -207,7 +207,7 @@ class CompilationEngine
     compile_parameter_list
     out_subroutine_body
     @indent_level -= 1
-    out("</subroutine>")
+    out("</subroutineDec>")
 
     @t.advance
     compile_subroutine

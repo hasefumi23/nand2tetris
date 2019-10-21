@@ -80,7 +80,7 @@ class Square {
     <identifier> size </identifier>
     <symbol> ; </symbol>
   </classVarDec>
-  <subroutine>
+  <subroutineDec>
     <keyword> constructor </keyword>
     <identifier> SquareGame </identifier>
     <identifier> new </identifier>
@@ -125,8 +125,8 @@ class Square {
       </statements>
       <symbol> } </symbol>
     </subroutineBody>
-  </subroutine>
-  <subroutine>
+  </subroutineDec>
+  <subroutineDec>
     <keyword> method </keyword>
     <keyword> void </keyword>
     <identifier> disposeA </identifier>
@@ -241,7 +241,7 @@ class Square {
       </statements>
       <symbol> } </symbol>
     </subroutineBody>
-  </subroutine>
+  </subroutineDec>
   <symbol> } </symbol>
 </class>
       EOS
