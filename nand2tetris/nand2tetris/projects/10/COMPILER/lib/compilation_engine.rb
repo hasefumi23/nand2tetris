@@ -459,10 +459,16 @@ class CompilationEngine
     # やや複雑なので最初の段階では実装する必要はない
 
     simple_out_token
-    @t.advance
 
     @indent_level -= 1
     out("</term>")
+
+    @t.advance
+    while JackTokenizer::OPERATORS.include?(@t.current_token)
+      simple_out_token
+      @t.advance
+      compile_term
+    end
   end
 
   # コンマで分離された式のリスト（空の可能性もある）をコンパイルする

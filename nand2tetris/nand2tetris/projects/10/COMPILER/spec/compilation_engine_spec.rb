@@ -14,7 +14,7 @@ class Square {
   method void disposeA(int num, char str) {
     let square = Square.new(0, 0, 30);
     var int total;
-    let total = num;
+    let total = num + 1;
     while (key) {
       let key = key;
       do moveSquare(key);
@@ -190,6 +190,10 @@ class Square {
           <expression>
             <term>
               <identifier> num </identifier>
+            </term>
+            <symbol> + </symbol>
+            <term>
+              <integerConstant> 1 </integerConstant>
             </term>
           </expression>
           <symbol> ; </symbol>
