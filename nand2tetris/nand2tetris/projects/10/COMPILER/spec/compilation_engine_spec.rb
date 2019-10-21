@@ -17,6 +17,13 @@ class Square {
       let key = key;
       do moveSquare(key);
     }
+
+    if (key) {
+      let direction = total;
+    } else {
+      let direction = key;
+    }
+
     return;
   }
 }
@@ -159,6 +166,38 @@ class Square {
           </statements>
           <symbol> } </symbol>
         </whileStatement>
+        <ifStatement>
+          <keyword> if </keyword>
+          <symbol> ( </symbol>
+          <expression>
+          </expression>
+          <symbol> ) </symbol>
+          <symbol> { </symbol>
+          <statements>
+            <letStatement>
+              <keyword> let </keyword>
+              <identifier> direction </identifier>
+              <symbol> = </symbol>
+              <expression>
+              </expression>
+              <symbol> ; </symbol>
+            </letStatement>
+          </statements>
+          <symbol> } </symbol>
+          <keyword> else </keyword>
+          <symbol> { </symbol>
+          <statements>
+            <letStatement>
+              <keyword> let </keyword>
+              <identifier> direction </identifier>
+              <symbol> = </symbol>
+              <expression>
+              </expression>
+              <symbol> ; </symbol>
+            </letStatement>
+          </statements>
+          <symbol> } </symbol>
+        </ifStatement>
         <returnStatement>
           <keyword> return </keyword>
           <symbol> ; </symbol>

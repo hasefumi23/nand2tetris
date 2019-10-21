@@ -221,9 +221,15 @@ class CompilationEngine
     when "return" then compile_return 
     when "let" then compile_let 
     when "while" then compile_while
+    when "if" then compile_if
     end
 
-    @t.advance
+    unless token == "if"
+      # if statmementの場合、elseが存在するかどうかの先読みをする必要があるので、
+      # compile_if内の最後で@t.advanceを呼んでいる
+      @t.advance
+    end
+
     compile_statements
   end
 
@@ -245,8 +251,8 @@ class CompilationEngine
       # '('
       simple_out_token
       
-      out("<expressionList>")
-      out("</expressionList>")
+      # FIXME: Fix later
+      compile_expression_list
       token = @t.current_token
       until token == ")"
         @t.advance
@@ -273,8 +279,8 @@ class CompilationEngine
         @t.advance
         token = @t.current_token
       end
-      out("<expressionList>")
-      out("</expressionList>")
+      # FIXME: Fix later
+      compile_expression_list
 
       # ")"
       simple_out_token
@@ -306,8 +312,9 @@ class CompilationEngine
 
     # token::symbol "="
     simple_out_token
-    out("<expression>")
-    out("</expression>")
+
+    # FIXME: Fix later
+    compile_expression
 
     until @t.current_token == ";"
       @t.advance
@@ -332,8 +339,8 @@ class CompilationEngine
     # token::symbol "("
     simple_out_token
 
-    out("<expression>")
-    out("</expression>")
+    # FIXME: Fix later
+    compile_expression
     until @t.current_token == ")"
       @t.advance
     end
@@ -363,8 +370,10 @@ class CompilationEngine
   def compile_return
     out("<returnStatement>")
     @indent_level += 1
+    # token::keyword "return"
     simple_out_token
     @t.advance
+    # token::symbol ";"
     simple_out_token
     @indent_level -= 1
     out("</returnStatement>")
@@ -372,12 +381,60 @@ class CompilationEngine
 
   # if 文をコンパイルする
   def compile_if
+    should_out_if_statement = @t.current_token == "if"
+    if should_out_if_statement
+      out("<ifStatement>")
+      @indent_level += 1
+    end
 
+    # token::keyword "if" | "else"
+    simple_out_token
+
+    if should_out_if_statement
+      @t.advance
+      # token::symbol "("
+      simple_out_token
+      
+      # FIXME: Fixe later
+      compile_expression
+      @t.advance
+      until @t.current_token == ")"
+        @t.advance
+      end
+
+      # token::symbol ")"
+      simple_out_token
+    end
+
+    @t.advance
+    # token::symbol "{"
+    simple_out_token
+
+    @t.advance
+    out("<statements>")
+    @indent_level += 1
+    compile_statements
+    @indent_level -= 1
+    out("</statements>")
+
+    # token::symbol "}"
+    simple_out_token
+
+    @t.advance
+    if @t.current_token == "else"
+      compile_if
+    end
+
+    if should_out_if_statement
+      @indent_level -= 1
+      out("</ifStatement>")
+    end
   end
 
   # 式をコンパイルする
   def compile_expression
-
+    out("<expression>")
+    out("</expression>")
   end
 
   # termをコンパイルする。このルーチンは、やや複雑であり、
@@ -393,6 +450,7 @@ class CompilationEngine
 
   # コンマで分離された式のリスト（空の可能性もある）をコンパイルする
   def compile_expression_list
-    
+    out("<expressionList>")
+    out("</expressionList>")
   end
 end
