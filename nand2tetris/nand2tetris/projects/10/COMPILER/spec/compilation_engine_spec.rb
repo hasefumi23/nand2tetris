@@ -12,8 +12,9 @@ class Square {
   }
 
   method void disposeA(int num, char str) {
-    let square = Square.new(0, 0, 30);
     var int total;
+    let square = Square.new(0, 0, 30);
+    let total = null;
     let total = num + 1;
     while (key) {
       let key = key;
@@ -179,6 +180,17 @@ class Square {
                 </expression>
               </expressionList>
               <symbol> ) </symbol>
+            </term>
+          </expression>
+          <symbol> ; </symbol>
+        </letStatement>
+        <letStatement>
+          <keyword> let </keyword>
+          <identifier> total </identifier>
+          <symbol> = </symbol>
+          <expression>
+            <term>
+              <keyword> null </keyword>
             </term>
           </expression>
           <symbol> ; </symbol>

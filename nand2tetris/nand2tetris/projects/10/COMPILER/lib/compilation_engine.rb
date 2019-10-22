@@ -51,7 +51,6 @@ class CompilationEngine
     end
 
     while ["constructor", "function", "method"].include?(token)
-      # binding.pry
       compile_subroutine
       # compile_class_var_dec内部でadvanceが呼ばれているのでtokneを入れ直す
       token = @t.current_token
@@ -239,14 +238,29 @@ class CompilationEngine
   def compile_do
     out("<doStatement>")
     @indent_level += 1
-    # 'do'
+    # token::keyword "do"
     simple_out_token
 
     @t.advance
-    # subroutineName | (className | varName)
-    simple_out_token
-
+    
+    out_subroutine_call
     @t.advance
+    # token::symbol ";"
+    simple_out_token
+    @indent_level -= 1
+    out("</doStatement>")
+  end
+
+  def out_subroutine_call(prev_token = nil, prev_token_type = nil)
+    if prev_token.nil? && prev_token_type.nil?
+      # subroutineName | (className | varName)
+      simple_out_token
+
+      @t.advance
+    else
+      out("<#{prev_token_type}> #{prev_token} </#{prev_token_type}>")
+    end
+
     token = @t.current_token
     case token
     when "("
@@ -255,11 +269,6 @@ class CompilationEngine
 
       @t.advance
       compile_expression_list
-      # token = @t.current_token
-      # until token == ")"
-      #   @t.advance
-      #   token = @t.current_token
-      # end
 
       # ')'
       simple_out_token
@@ -281,10 +290,6 @@ class CompilationEngine
       # ")"
       simple_out_token
     end
-    @t.advance
-    simple_out_token
-    @indent_level -= 1
-    out("</doStatement>")
   end
 
   # let 文をコンパイルする
@@ -309,13 +314,14 @@ class CompilationEngine
     # token::symbol "="
     simple_out_token
 
-    # FIXME: Fix later
     @t.advance
     compile_expression
 
-    # until @t.current_token == ";"
-    #   @t.advance
-    # end
+    until @t.current_token == ";"
+      # compile_expressionがかなり複雑なのでここでtokenの進み具合を調整する
+      # あんまり良くないので時間があれば修正する
+      @t.advance
+    end
 
     # token::symbol ";"
     simple_out_token
@@ -339,9 +345,6 @@ class CompilationEngine
     # FIXME: Fix later
     @t.advance
     compile_expression
-    # until @t.current_token == ")"
-    #   @t.advance
-    # end
 
     # token::symbol ")"
     simple_out_token
@@ -440,7 +443,21 @@ class CompilationEngine
     out("<expression>")
     @indent_level += 1
 
-    compile_term
+    if @t.current_token == "size"
+      # binding.pry
+    end
+
+    current_token = @t.current_token
+    current_token_type = @t.token_type
+    @t.advance
+    next_token = @t.current_token
+    next_token_type = @t.token_type
+    compile_term(
+      current_token,
+      current_token_type,
+      next_token,
+      next_token_type
+    )
 
     @indent_level -= 1
     out("</expression>")
@@ -453,21 +470,31 @@ class CompilationEngine
   # そのためには、ひとつ先のトークンを読み込み、
   # そのトークンが“[”か“(”か“.”のどれに該当するかを調べれば、現トークンの種類を決定することができる
   # 他のトークンの場合は現トークンに含まないので、先読みを行う必要はない
-  def compile_term
+  def compile_term(current_token, current_token_type, next_token, next_token_type)
     out("<term>")
     @indent_level += 1
-    # やや複雑なので最初の段階では実装する必要はない
 
-    simple_out_token
+    if current_token == "("
+      # FIXME: ここをいじることに意味がある気がする
+      out("<#{current_token_type}> #{current_token} </#{current_token_type}>")
+      compile_expression
+      # binding.pry
+      simple_out_token
+    elsif JackTokenizer::OPERATORS.include?(current_token)
+      # current_tokenがOperatorの場合 `term (op term)*` に当てはまる
+      out("<#{next_token_type}> #{next_token} </#{next_token_type}>")
+      @t.advance
+    else
+      out("<#{current_token_type}> #{current_token} </#{current_token_type}>")
+    end
 
     @indent_level -= 1
     out("</term>")
 
-    @t.advance
-    while JackTokenizer::OPERATORS.include?(@t.current_token)
+    if JackTokenizer::OPERATORS.include?(next_token)
       simple_out_token
       @t.advance
-      compile_term
+      compile_term(next_token, next_token_type, @t.current_token, @t.token_type)
     end
   end
 
@@ -476,11 +503,18 @@ class CompilationEngine
     out("<expressionList>")
 
     # FIXME:
-    unless @t.current_token == ")"
+    until @t.current_token == ")"
       @indent_level += 1
       compile_expression
+      while @t.current_token == ","
+        simple_out_token
+        @t.advance
+        compile_expression
+      end
+      # @t.advance
       @indent_level -= 1
     end
+    # simple_out_token
 
     out("</expressionList>")
   end
