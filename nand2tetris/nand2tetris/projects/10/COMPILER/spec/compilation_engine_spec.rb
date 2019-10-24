@@ -4,40 +4,66 @@ RSpec.describe CompilationEngine do
 class Square {
   field int x, y;
   static int size;
-
-  constructor SquareGame new() {
-    let square = square;
-    let direction = direction;
-    return square;
-  }
-
-  method void disposeA(int num, char str) {
-    var int total;
-    let square = Square.new(0, 0, 30);
-    let total = null;
-    let total = num + 1;
-    while (key) {
-      let key = key;
-      do moveSquare(key);
-    }
-
-    if (key) {
-      let direction = total;
-    } else {
-      let direction = key;
-    }
-
-    return;
-  }
 }
-    EOS
+EOS
   }
+
+  # constructor SquareGame new() {
+  #   let square = square;
+  #   let direction = direction;
+  #   return square;
+  # }
+
+  # method void disposeA(int num, char str) {
+  # }
   let(:string_io) { StringIO.new(contents) }
   let(:tokenizer) { JackTokenizer.new("file_path") }
   let(:engine) { CompilationEngine.new(tokenizer) }
 
   before do
     allow(File).to receive(:open).and_return(string_io)
+  end
+
+  describe 'expect method' do
+    describe '#expect_keyword' do
+      let(:contents) { "clazz Square {}" }
+      
+      it "raise NoExpectedKeywordError" do
+        expect { engine.expect_keyword("class") }.to raise_error(CompilationEngine::NoExpectedKeywordError)
+      end
+    end
+
+    describe '#expect_symbol' do
+      let(:contents) { "class Square []" }
+      
+      it "raise NoExpectedSymbolError" do
+        expect{ engine.expect_symbol("[") }.to raise_error(CompilationEngine::NoExpectedSymbolError)
+      end
+    end
+
+    describe '#expect_integer_constant' do
+      let(:contents) { "class Square []" }
+      
+      it "raise NotIntegerConstantError" do
+        expect{ engine.expect_integer_constant }.to raise_error(CompilationEngine::NotIntegerConstantError)
+      end
+    end
+
+    describe '#expect_string_constant' do
+      let(:contents) { "class Square []" }
+      
+      it "raise NotStringConstantError" do
+        expect{ engine.expect_string_constant }.to raise_error(CompilationEngine::NotStringConstantError)
+      end
+    end
+
+    describe '#expect_identifier' do
+      let(:contents) { "class Square []" }
+      
+      it "raise NotIdentifierError" do
+        expect{ engine.expect_identifier }.to raise_error(CompilationEngine::NotIdentifierError)
+      end
+    end
   end
 
   describe 'minimal compile_class' do
@@ -82,222 +108,6 @@ class Square {
     <identifier> size </identifier>
     <symbol> ; </symbol>
   </classVarDec>
-  <subroutineDec>
-    <keyword> constructor </keyword>
-    <identifier> SquareGame </identifier>
-    <identifier> new </identifier>
-    <symbol> ( </symbol>
-    <parameterList>
-    </parameterList>
-    <symbol> ) </symbol>
-    <subroutineBody>
-      <symbol> { </symbol>
-      <statements>
-        <letStatement>
-          <keyword> let </keyword>
-          <identifier> square </identifier>
-          <symbol> = </symbol>
-          <expression>
-            <term>
-              <identifier> square </identifier>
-            </term>
-          </expression>
-          <symbol> ; </symbol>
-        </letStatement>
-        <letStatement>
-          <keyword> let </keyword>
-          <identifier> direction </identifier>
-          <symbol> = </symbol>
-          <expression>
-            <term>
-              <identifier> direction </identifier>
-            </term>
-          </expression>
-          <symbol> ; </symbol>
-        </letStatement>
-        <returnStatement>
-          <keyword> return </keyword>
-          <expression>
-            <term>
-              <identifier> square </identifier>
-            </term>
-          </expression>
-          <symbol> ; </symbol>
-        </returnStatement>
-      </statements>
-      <symbol> } </symbol>
-    </subroutineBody>
-  </subroutineDec>
-  <subroutineDec>
-    <keyword> method </keyword>
-    <keyword> void </keyword>
-    <identifier> disposeA </identifier>
-    <symbol> ( </symbol>
-    <parameterList>
-      <keyword> int </keyword>
-      <identifier> num </identifier>
-      <symbol> , </symbol>
-      <keyword> char </keyword>
-      <identifier> str </identifier>
-    </parameterList>
-    <symbol> ) </symbol>
-    <subroutineBody>
-      <symbol> { </symbol>
-      <varDec>
-        <keyword> var </keyword>
-        <keyword> int </keyword>
-        <identifier> total </identifier>
-        <symbol> ; </symbol>
-      </varDec>
-      <statements>
-        <letStatement>
-          <keyword> let </keyword>
-          <identifier> square </identifier>
-          <symbol> = </symbol>
-          <expression>
-            <term>
-              <identifier> Square </identifier>
-              <symbol> . </symbol>
-              <identifier> new </identifier>
-              <symbol> ( </symbol>
-              <expressionList>
-                <expression>
-                  <term>
-                    <integerConstant> 0 </integerConstant>
-                  </term>
-                </expression>
-                <symbol> , </symbol>
-                <expression>
-                  <term>
-                    <integerConstant> 0 </integerConstant>
-                  </term>
-                </expression>
-                <symbol> , </symbol>
-                <expression>
-                  <term>
-                    <integerConstant> 30 </integerConstant>
-                  </term>
-                </expression>
-              </expressionList>
-              <symbol> ) </symbol>
-            </term>
-          </expression>
-          <symbol> ; </symbol>
-        </letStatement>
-        <letStatement>
-          <keyword> let </keyword>
-          <identifier> total </identifier>
-          <symbol> = </symbol>
-          <expression>
-            <term>
-              <keyword> null </keyword>
-            </term>
-          </expression>
-          <symbol> ; </symbol>
-        </letStatement>
-        <letStatement>
-          <keyword> let </keyword>
-          <identifier> total </identifier>
-          <symbol> = </symbol>
-          <expression>
-            <term>
-              <identifier> num </identifier>
-            </term>
-            <symbol> + </symbol>
-            <term>
-              <integerConstant> 1 </integerConstant>
-            </term>
-          </expression>
-          <symbol> ; </symbol>
-        </letStatement>
-        <whileStatement>
-          <keyword> while </keyword>
-          <symbol> ( </symbol>
-          <expression>
-            <term>
-              <identifier> key </identifier>
-            </term>
-          </expression>
-          <symbol> ) </symbol>
-          <symbol> { </symbol>
-          <statements>
-            <letStatement>
-              <keyword> let </keyword>
-              <identifier> key </identifier>
-              <symbol> = </symbol>
-              <expression>
-                <term>
-                  <identifier> key </identifier>
-                </term>
-              </expression>
-              <symbol> ; </symbol>
-            </letStatement>
-            <doStatement>
-              <keyword> do </keyword>
-              <identifier> moveSquare </identifier>
-              <symbol> ( </symbol>
-              <expressionList>
-                <expression>
-                  <term>
-                    <identifier> key </identifier>
-                  </term>
-                </expression>
-              </expressionList>
-              <symbol> ) </symbol>
-              <symbol> ; </symbol>
-            </doStatement>
-          </statements>
-          <symbol> } </symbol>
-        </whileStatement>
-        <ifStatement>
-          <keyword> if </keyword>
-          <symbol> ( </symbol>
-          <expression>
-            <term>
-              <identifier> key </identifier>
-            </term>
-          </expression>
-          <symbol> ) </symbol>
-          <symbol> { </symbol>
-          <statements>
-            <letStatement>
-              <keyword> let </keyword>
-              <identifier> direction </identifier>
-              <symbol> = </symbol>
-              <expression>
-                <term>
-                  <identifier> total </identifier>
-                </term>
-              </expression>
-              <symbol> ; </symbol>
-            </letStatement>
-          </statements>
-          <symbol> } </symbol>
-          <keyword> else </keyword>
-          <symbol> { </symbol>
-          <statements>
-            <letStatement>
-              <keyword> let </keyword>
-              <identifier> direction </identifier>
-              <symbol> = </symbol>
-              <expression>
-                <term>
-                  <identifier> key </identifier>
-                </term>
-              </expression>
-              <symbol> ; </symbol>
-            </letStatement>
-          </statements>
-          <symbol> } </symbol>
-        </ifStatement>
-        <returnStatement>
-          <keyword> return </keyword>
-          <symbol> ; </symbol>
-        </returnStatement>
-      </statements>
-      <symbol> } </symbol>
-    </subroutineBody>
-  </subroutineDec>
   <symbol> } </symbol>
 </class>
       EOS
@@ -305,6 +115,75 @@ class Square {
     end
   end
 end
+  # <subroutineDec>
+  #   <keyword> constructor </keyword>
+  #   <identifier> SquareGame </identifier>
+  #   <identifier> new </identifier>
+  #   <symbol> ( </symbol>
+  #   <parameterList>
+  #   </parameterList>
+  #   <symbol> ) </symbol>
+  #   <subroutineBody>
+  #     <symbol> { </symbol>
+  #     <statements>
+  #       <letStatement>
+  #         <keyword> let </keyword>
+  #         <identifier> square </identifier>
+  #         <symbol> = </symbol>
+  #         <expression>
+  #           <term>
+  #             <identifier> square </identifier>
+  #           </term>
+  #         </expression>
+  #         <symbol> ; </symbol>
+  #       </letStatement>
+  #       <letStatement>
+  #         <keyword> let </keyword>
+  #         <identifier> direction </identifier>
+  #         <symbol> = </symbol>
+  #         <expression>
+  #           <term>
+  #             <identifier> direction </identifier>
+  #           </term>
+  #         </expression>
+  #         <symbol> ; </symbol>
+  #       </letStatement>
+  #       <returnStatement>
+  #         <keyword> return </keyword>
+  #         <expression>
+  #           <term>
+  #             <identifier> square </identifier>
+  #           </term>
+  #         </expression>
+  #         <symbol> ; </symbol>
+  #       </returnStatement>
+  #     </statements>
+  #     <symbol> } </symbol>
+  #   </subroutineBody>
+  # </subroutineDec>
+  # <subroutineDec>
+  #   <keyword> method </keyword>
+  #   <keyword> void </keyword>
+  #   <identifier> disposeA </identifier>
+  #   <symbol> ( </symbol>
+  #   <parameterList>
+  #     <keyword> int </keyword>
+  #     <identifier> num </identifier>
+  #     <symbol> , </symbol>
+  #     <keyword> char </keyword>
+  #     <identifier> str </identifier>
+  #   </parameterList>
+  #   <symbol> ) </symbol>
+  #   <subroutineBody>
+  #     <symbol> { </symbol>
+  #     <varDec>
+  #       <keyword> var </keyword>
+  #       <keyword> int </keyword>
+  #       <identifier> total </identifier>
+  #       <symbol> ; </symbol>
+  #     </varDec>
+  #     <symbol> } </symbol>
+  # </subroutineDec>
 
 # method void disposeA(int num, char str) {
 #   do Memory.deAlloc(this);
