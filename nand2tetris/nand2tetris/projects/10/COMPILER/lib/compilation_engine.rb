@@ -21,59 +21,60 @@ class CompilationEngine
     puts(str)
   end
 
-  def simple_out_token
+  def simple_out_token(with_advance: true)
+    @t.advance if with_advance
     out("<#{@t.token_type}> #{@t.current_token} </#{@t.token_type}>")
   end
 
-  def expect_keyword(*keywords)
+  def expect_keyword(keywords, with_advance: true)
     unless keywords.include?(@t.current_token) &&
       @t.token_type == JackTokenizer::KEYWORD
       # raise NoExpectedKeywordError.new("Expected keywords are: #{keywords}. But actual #{build_error_message}")
     end
 
-    simple_out_token
+    simple_out_token(with_advance: with_advance)
   end
 
-  def expect_symbol(*symbols)
+  def expect_symbol(symbols, with_advance: true)
     unless symbols.include?(@t.current_token) &&
       @t.token_type == JackTokenizer::SYMBOL
       # raise NoExpectedSymbolError.new("Expected symbols are: #{symbols}. But actual #{build_error_message}")
     end
 
-    simple_out_token
+    simple_out_token(with_advance: with_advance)
   end
 
-  def expect_integer_constant
+  def expect_integer_constant(with_advance: true)
     unless @t.token_type == JackTokenizer::INTEGER_CONSTANT
       # raise NotIntegerConstantError.new("Expected INTEGER_CONSTANT but #{build_error_message}")
     end
 
-    simple_out_token
+    simple_out_token(with_advance: with_advance)
   end
 
-  def expect_string_constant
+  def expect_string_constant(with_advance: true)
     unless @t.token_type == JackTokenizer::STRING_CONSTANT
       # raise NotStringConstantError.new("Expected STRING_CONSTANT but #{build_error_message}")
     end
 
-    simple_out_token
+    simple_out_token(with_advance: with_advance)
   end
 
-  def expect_identifier
+  def expect_identifier(with_advance: true)
     unless @t.token_type == JackTokenizer::IDENTIFIER
       # raise NotIdentifierError.new("Expected IDENTIFIER but #{build_error_message}")
     end
 
-    simple_out_token
+    simple_out_token(with_advance: with_advance)
   end
 
-  def expect_type
+  def expect_type(with_advance: true)
     unless %w[int char boolean].include?(@t.current_token) ||
       @t.token_type == JackTokenizer::IDENTIFIER
       # raise NoExpectationError.new("Expected type, but actual #{build_error_message}")
     end
 
-    simple_out_token
+    simple_out_token(with_advance: with_advance)
   end
 
   def build_error_message
@@ -92,11 +93,9 @@ class CompilationEngine
     out("<class>")
     @indent_level += 1
 
-    expect_keyword("class")
-    @t.advance
+    expect_keyword(["class"], with_advance: false)
     expect_identifier
-    @t.advance
-    expect_symbol("{")
+    expect_symbol(["{"])
 
     @t.advance
     while %w[static field].include?(@t.current_token)
@@ -107,8 +106,7 @@ class CompilationEngine
       compile_subroutine
     end
 
-    @t.advance
-    expect_symbol("}")
+    expect_symbol(["}"])
 
     @indent_level -= 1
     out("</class>")
@@ -120,25 +118,20 @@ class CompilationEngine
     out("<classVarDec>")
     @indent_level += 1
 
-    expect_keyword(*%w[static field])
-
-    @t.advance
+    expect_keyword(%w[static field], with_advance: false)
     expect_type
-
-    @t.advance
     # token::varName
     expect_identifier
 
     @t.advance
     while @t.current_token == ","
-      expect_symbol(",")
-      @t.advance
+      expect_symbol([","], with_advance: false)
       # token::varName
       expect_identifier
       @t.advance
     end
 
-    expect_symbol(";")
+    expect_symbol([";"], with_advance: false)
 
     @indent_level -= 1
     out("</classVarDec>")
@@ -148,18 +141,15 @@ class CompilationEngine
   def compile_parameter_list
     @indent_level += 1
 
-    expect_type
+    expect_type(with_advance: false)
 
-    @t.advance
     # token::varName
     expect_identifier
 
     @t.advance
     while @t.current_token == ","
-      expect_symbol(",")
-      @t.advance
+      expect_symbol([","], with_advance: false)
       expect_type
-      @t.advance
       # token::varName
       expect_identifier
       @t.advance
@@ -171,26 +161,20 @@ class CompilationEngine
   def compile_var_dec
     out("<varDec>")
     @indent_level += 1
-
-    expect_keyword("var")
-
-    @t.advance
+    expect_keyword(["var"], with_advance: false)
     expect_type
-
-    @t.advance
     # token::varName
     expect_identifier
 
     @t.advance
     while @t.current_token == ","
-      expect_symbol(",")
-      @t.advance
+      expect_symbol([","], with_advance: false)
       # token::varName
       expect_identifier
       @t.advance
     end
 
-    expect_symbol(";")
+    expect_symbol([";"], with_advance: false)
     @indent_level -= 1
     out("</varDec>")
   end
@@ -199,16 +183,10 @@ class CompilationEngine
   def compile_subroutine
     out("<subroutineDec>")
     @indent_level += 1
-    expect_keyword(*%w[constructor function method])
-
-    @t.advance
+    expect_keyword(%w[constructor function method], with_advance: false)
     simple_out_token
-
-    @t.advance
     expect_identifier
-
-    @t.advance
-    expect_symbol("(")
+    expect_symbol(["("])
 
     @t.advance
     out("<parameterList>")
@@ -217,8 +195,7 @@ class CompilationEngine
     end
     out("</parameterList>")
 
-    expect_symbol(")")
-
+    expect_symbol([")"], with_advance: false)
     @t.advance
     compile_subroutine_body
 
@@ -231,7 +208,7 @@ class CompilationEngine
     out("<subroutineBody>")
     @indent_level += 1
 
-    expect_symbol("{")
+    expect_symbol(["{"], with_advance: false)
 
     @t.advance
     while @t.current_token == "var"
@@ -241,8 +218,7 @@ class CompilationEngine
 
     compile_statements
 
-    # @t.advance
-    expect_symbol("}")
+    expect_symbol(["}"], with_advance: false)
 
     @indent_level -= 1
     out("</subroutineBody>")
@@ -291,27 +267,24 @@ class CompilationEngine
     out("<letStatement>")
     @indent_level += 1
 
-    expect_keyword("let")
+    expect_keyword(["let"], with_advance: false)
 
     # token::varName
-    @t.advance
     expect_identifier
 
     @t.advance
     if @t.current_token == "["
-      expect_symbol("[")
+      expect_symbol(["["], with_advance: false)
       @t.advance
       compile_expression
-      expect_symbol("]")
+      expect_symbol(["]"], with_advance: false)
       @t.advance
     end
 
-    expect_symbol("=")
-
+    expect_symbol(["="], with_advance: false)
     @t.advance
     compile_expression
-
-    expect_symbol(";")
+    expect_symbol([";"], with_advance: false)
 
     @indent_level -= 1
     out("</letStatement>")
@@ -321,24 +294,20 @@ class CompilationEngine
   def compile_while
     out("<whileStatement>")
     @indent_level += 1
-    expect_keyword("while")
+    expect_keyword(["while"], with_advance: false)
 
-    @t.advance
-    expect_symbol("(")
+    expect_symbol(["("])
 
     @t.advance
     compile_expression
 
-    expect_symbol(")")
-
-    @t.advance
-    expect_symbol("{")
+    expect_symbol([")"], with_advance: false)
+    expect_symbol(["{"])
 
     @t.advance
     compile_statements
 
-    # @t.advance
-    expect_symbol("}")
+    expect_symbol(["}"], with_advance: false)
     @indent_level -= 1
     out("</whileStatement>")
   end
@@ -347,14 +316,14 @@ class CompilationEngine
   def compile_return
     out("<returnStatement>")
     @indent_level += 1
-    expect_keyword("return")
+    expect_keyword(["return"], with_advance: false)
 
     @t.advance
     unless @t.current_token == ";"
       compile_expression
     end
 
-    expect_symbol(";")
+    expect_symbol([";"], with_advance: false)
     @indent_level -= 1
     out("</returnStatement>")
   end
@@ -363,28 +332,24 @@ class CompilationEngine
   def compile_if
     out("<ifStatement>")
     @indent_level += 1
-    expect_keyword("if")
-    @t.advance
-    expect_symbol("(")
+    expect_keyword(["if"], with_advance: false)
+    expect_symbol(["("])
     @t.advance
     compile_expression
-    expect_symbol(")")
-    @t.advance
-    expect_symbol("{")
+    expect_symbol([")"], with_advance: false)
+    expect_symbol(["{"])
     @t.advance
     compile_statements
-    expect_symbol("}")
+    expect_symbol(["}"], with_advance: false)
 
     @t.advance
     if @t.current_token == "else"
-      expect_keyword("else")
+      expect_keyword(["else"], with_advance: false)
 
-      @t.advance
-      expect_symbol("{")
+      expect_symbol(["{"])
       @t.advance
       compile_statements
-      @t.advance
-      expect_symbol("{")
+      expect_symbol(["{"])
       @t.advance
     end
     @indent_level -= 1
@@ -396,7 +361,6 @@ class CompilationEngine
     out("<expression>")
     @indent_level += 1
 
-    # @t.advance
     compile_term
 
     @t.advance
@@ -419,7 +383,7 @@ class CompilationEngine
   def compile_term
     out("<term>")
     @indent_level += 1
-    simple_out_token
+    simple_out_token(with_advance: false)
     @indent_level -= 1
     out("</term>")
   end
