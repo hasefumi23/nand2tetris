@@ -256,13 +256,21 @@ class CompilationEngine
 
     while %w[let if while do return].include?(@t.current_token)
       case @t.current_token
-      when "let" then compile_let
-      when "if" then compile_if
-      when "while" then compile_while
-      when "do" then compile_do
-      when "return" then compile_return
+      when "let"
+        compile_let
+        @t.advance
+      when "if"
+        compile_if
+      when "while"
+        compile_while
+        @t.advance
+      when "do" 
+        compile_do
+        @t.advance
+      when "return"
+        compile_return
+        @t.advance
       end
-      @t.advance
     end
 
     @indent_level -= 1
@@ -271,6 +279,11 @@ class CompilationEngine
 
   # do 文をコンパイルする
   def compile_do
+    out("<doStatement>")
+    @indent_level += 1
+    # subroutineCallが面倒すぎるので一旦skip
+    @indent_level -= 1
+    out("</doStatement>")
   end
 
   # let 文をコンパイルする
@@ -306,6 +319,28 @@ class CompilationEngine
 
   # while 文をコンパイルする
   def compile_while
+    out("<whileStatement>")
+    @indent_level += 1
+    expect_keyword("while")
+
+    @t.advance
+    expect_symbol("(")
+
+    @t.advance
+    compile_expression
+
+    expect_symbol(")")
+
+    @t.advance
+    expect_symbol("{")
+
+    @t.advance
+    compile_statements
+
+    # @t.advance
+    expect_symbol("}")
+    @indent_level -= 1
+    out("</whileStatement>")
   end
 
   # return 文をコンパイルする
@@ -326,6 +361,34 @@ class CompilationEngine
 
   # if 文をコンパイルする
   def compile_if
+    out("<ifStatement>")
+    @indent_level += 1
+    expect_keyword("if")
+    @t.advance
+    expect_symbol("(")
+    @t.advance
+    compile_expression
+    expect_symbol(")")
+    @t.advance
+    expect_symbol("{")
+    @t.advance
+    compile_statements
+    expect_symbol("}")
+
+    @t.advance
+    if @t.current_token == "else"
+      expect_keyword("else")
+
+      @t.advance
+      expect_symbol("{")
+      @t.advance
+      compile_statements
+      @t.advance
+      expect_symbol("{")
+      @t.advance
+    end
+    @indent_level -= 1
+    out("</ifStatement>")
   end
 
   # 式をコンパイルする

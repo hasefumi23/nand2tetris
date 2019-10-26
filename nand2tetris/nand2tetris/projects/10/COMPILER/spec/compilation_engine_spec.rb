@@ -8,11 +8,19 @@ class Square {
   constructor SquareGame new() {
     var Square square;
     let square = square;
+    while (key) {
+      let key = key;
+    }
     return;
   }
 
   method void disposeA(int num, char str) {
     var int total;
+    if (key) {
+      let exit = exit;
+    } else {
+      let exit = exit;
+    }
   }
 }
 EOS
@@ -146,6 +154,31 @@ class Square {
           </expression>
           <symbol> ; </symbol>
         </letStatement>
+        <whileStatement>
+          <keyword> while </keyword>
+          <symbol> ( </symbol>
+          <expression>
+            <term>
+              <identifier> key </identifier>
+            </term>
+          </expression>
+          <symbol> ) </symbol>
+          <symbol> { </symbol>
+          <statements>
+            <letStatement>
+              <keyword> let </keyword>
+              <identifier> key </identifier>
+              <symbol> = </symbol>
+              <expression>
+                <term>
+                  <identifier> key </identifier>
+                </term>
+              </expression>
+              <symbol> ; </symbol>
+            </letStatement>
+          </statements>
+          <symbol> } </symbol>
+        </whileStatement>
         <returnStatement>
           <keyword> return </keyword>
           <symbol> ; </symbol>
@@ -176,6 +209,47 @@ class Square {
         <symbol> ; </symbol>
       </varDec>
       <statements>
+        <ifStatement>
+          <keyword> if </keyword>
+          <symbol> ( </symbol>
+          <expression>
+            <term>
+              <identifier> key </identifier>
+            </term>
+          </expression>
+          <symbol> ) </symbol>
+          <symbol> { </symbol>
+          <statements>
+            <letStatement>
+              <keyword> let </keyword>
+              <identifier> exit </identifier>
+              <symbol> = </symbol>
+              <expression>
+                <term>
+                  <identifier> exit </identifier>
+                </term>
+              </expression>
+              <symbol> ; </symbol>
+            </letStatement>
+          </statements>
+          <symbol> } </symbol>
+          <keyword> else </keyword>
+          <symbol> { </symbol>
+          <statements>
+            <letStatement>
+              <keyword> let </keyword>
+              <identifier> exit </identifier>
+              <symbol> = </symbol>
+              <expression>
+                <term>
+                  <identifier> exit </identifier>
+                </term>
+              </expression>
+              <symbol> ; </symbol>
+            </letStatement>
+          </statements>
+          <symbol> } </symbol>
+        </ifStatement>
       </statements>
       <symbol> } </symbol>
     </subroutineBody>
@@ -266,12 +340,3 @@ end
 #   do Memory.deAlloc(this);
 #   return;
 # }
-
-        # <letStatement>
-        #   <keyword> let </keyword>
-        #   <identifier> total </identifier>
-        #   <symbol> = </symbol>
-        #   <expression>
-        #   </expression>
-        #   <symbol> ; </symbol>
-        # </letStatement>
