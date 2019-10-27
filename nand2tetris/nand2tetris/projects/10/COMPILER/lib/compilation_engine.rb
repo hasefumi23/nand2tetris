@@ -240,7 +240,6 @@ class CompilationEngine
         @t.advance
       when "do" 
         compile_do
-        @t.advance
       when "return"
         compile_return
         @t.advance
@@ -258,10 +257,18 @@ class CompilationEngine
 
     expect_keyword("do", with_advance: false)
     out_subroutine_call
-    expect_symbol(";")
+    @t.advance
+    if @t.current_token == ";"
+      expect_symbol(";", with_advance: false)
+      @t.advance
+    else
+      prev = @t.prev
+      out("<#{prev["token_type"]}> #{prev["token"]} </#{prev["token_type"]}>")
+    end
     # subroutineCallが面倒すぎるので一旦skip
     @indent_level -= 1
     out("</doStatement>")
+    # pp @t
   end
 
   # compile_termからはトークンを先読みした状態で呼ばれる可能性があるので、
@@ -286,7 +293,12 @@ class CompilationEngine
     expect_symbol("(", with_advance: false)
     @t.advance
     compile_expression_list
-    expect_symbol(")", with_advance: false)
+    if @t.current_token == ")"
+      expect_symbol(")", with_advance: false)
+    else
+      prev = @t.prev
+      out("<#{prev["token_type"]}> #{prev["token"]} </#{prev["token_type"]}>")
+    end
   end
 
   # let 文をコンパイルする
@@ -481,10 +493,16 @@ class CompilationEngine
     @indent_level += 1
 
     unless @t.current_token == ")"
+      token_type = @t.token_type
       compile_expression
-      while @t.current_token == ","
-        expect_symbol(",", with_advance: false)
-        @t.advance
+      while @t.current_token == "," || (token_type == JackTokenizer::IDENTIFIER && @t.prev["token"] == ",")
+        if @t.current_token == ","
+          expect_symbol(",", with_advance: false)
+          @t.advance
+        else
+          prev = @t.prev
+          out("<#{prev["token_type"]}> #{prev["token"]} </#{prev["token_type"]}>")
+        end
         compile_expression
       end
     end
