@@ -14,6 +14,7 @@ class CompilationEngine
     @t = tokenizer
     @indent_level = 0
     @t.advance
+    @t.advance
   end
 
   def out(str)
@@ -23,12 +24,12 @@ class CompilationEngine
 
   def simple_out_token(with_advance: true)
     @t.advance if with_advance
-    out("<#{@t.token_type}> #{@t.current_token} </#{@t.token_type}>")
+    out("<#{@t.current_token_type}> #{@t.current_token} </#{@t.current_token_type}>")
   end
 
   def expect_keyword(keywords, with_advance: true)
     unless keywords.include?(@t.current_token) &&
-      @t.token_type == JackTokenizer::KEYWORD
+      @t.current_token_type == JackTokenizer::KEYWORD
       # raise NoExpectedKeywordError.new("Expected keywords are: #{keywords}. But actual #{build_error_message}")
     end
 
@@ -37,7 +38,7 @@ class CompilationEngine
 
   def expect_symbol(symbols, with_advance: true)
     unless symbols.include?(@t.current_token) &&
-      @t.token_type == JackTokenizer::SYMBOL
+      @t.current_token_type == JackTokenizer::SYMBOL
       # raise NoExpectedSymbolError.new("Expected symbols are: #{symbols}. But actual #{build_error_message}")
     end
 
@@ -45,7 +46,7 @@ class CompilationEngine
   end
 
   def expect_integer_constant(with_advance: true)
-    unless @t.token_type == JackTokenizer::INTEGER_CONSTANT
+    unless @t.current_token_type == JackTokenizer::INTEGER_CONSTANT
       # raise NotIntegerConstantError.new("Expected INTEGER_CONSTANT but #{build_error_message}")
     end
 
@@ -53,7 +54,7 @@ class CompilationEngine
   end
 
   def expect_string_constant(with_advance: true)
-    unless @t.token_type == JackTokenizer::STRING_CONSTANT
+    unless @t.current_token_type == JackTokenizer::STRING_CONSTANT
       # raise NotStringConstantError.new("Expected STRING_CONSTANT but #{build_error_message}")
     end
 
@@ -61,7 +62,7 @@ class CompilationEngine
   end
 
   def expect_identifier(with_advance: true)
-    unless @t.token_type == JackTokenizer::IDENTIFIER
+    unless @t.current_token_type == JackTokenizer::IDENTIFIER
       # raise NotIdentifierError.new("Expected IDENTIFIER but #{build_error_message}")
     end
 
@@ -70,7 +71,7 @@ class CompilationEngine
 
   def expect_type(with_advance: true)
     unless %w[int char boolean].include?(@t.current_token) ||
-      @t.token_type == JackTokenizer::IDENTIFIER
+      @t.current_token_type == JackTokenizer::IDENTIFIER
       # raise NoExpectationError.new("Expected type, but actual #{build_error_message}")
     end
 
@@ -78,12 +79,12 @@ class CompilationEngine
   end
 
   def build_error_message
-    "#{@t.current_token}, token_type is #{@t.token_type}"
+    "#{@t.current_token}, token_type is #{@t.current_token_type}"
   end
 
   def type_syntax?
     %w[int char boolean].include?(@t.current_token) ||
-      @t.token_type == JackTokenizer::IDENTIFIER
+      @t.current_token_type == JackTokenizer::IDENTIFIER
   end
 
   # クラスをコンパイルする
