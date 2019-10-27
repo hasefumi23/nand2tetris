@@ -10,6 +10,7 @@ class JackTokenizer
   KEY_WORDS = %w[class constructor function method field static var int char boolean void true false null this let do if else while return]
   SYMBOLS = %w[{ } ( ) [ ] . , ; + - * / & | < > = ~]
   OPERATORS = %w[+ - * / &amp; | &lt; &gt; =]
+  UNARY_OPS = %w[- ~]
 
   # return values of token_type
   KEYWORD = "keyword"

@@ -9,7 +9,7 @@ class Square {
     var Square square;
     let square = square;
     while (key) {
-      let key = key;
+      let key = -key;
       do moveSquare();
       do square.run();
     }
@@ -174,7 +174,10 @@ class Square {
               <symbol> = </symbol>
               <expression>
                 <term>
-                  <identifier> key </identifier>
+                  <symbol> - </symbol>
+                  <term>
+                    <identifier> key </identifier>
+                  </term>
                 </term>
               </expression>
               <symbol> ; </symbol>

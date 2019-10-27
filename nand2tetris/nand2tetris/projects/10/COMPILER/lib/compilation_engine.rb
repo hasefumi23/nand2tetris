@@ -406,7 +406,15 @@ class CompilationEngine
   def compile_term
     out("<term>")
     @indent_level += 1
-    simple_out_token(with_advance: false)
+
+    if JackTokenizer::UNARY_OPS.include?(@t.current_token)
+      simple_out_token(with_advance: false)
+      @t.advance
+      compile_term
+    else
+      simple_out_token(with_advance: false)
+    end
+
     @indent_level -= 1
     out("</term>")
   end
