@@ -370,7 +370,7 @@ class CompilationEngine
       expect_symbol(["{"])
       @t.advance
       compile_statements
-      expect_symbol(["{"])
+      expect_symbol(["}"], with_advance: false)
       @t.advance
     end
     @indent_level -= 1
@@ -386,6 +386,8 @@ class CompilationEngine
 
     @t.advance
     while JackTokenizer::OPERATORS.include?(@t.current_token)
+      expect_symbol(JackTokenizer::OPERATORS, with_advance: false)
+      @t.advance
       compile_term
       @t.advance
     end
@@ -415,7 +417,10 @@ class CompilationEngine
     @indent_level += 1
 
     unless @t.current_token == ")"
+      compile_expression
       while @t.current_token == ","
+        expect_symbol(",", with_advance: false)
+        @t.advance
         compile_expression
       end
     end
