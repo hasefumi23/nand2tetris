@@ -2,6 +2,8 @@
 require 'pry'
 
 class JackTokenizer
+  attr_reader :prev
+
   class CommentError < StandardError; end
 
   # DEBUG = true
@@ -10,6 +12,7 @@ class JackTokenizer
   KEY_WORDS = %w[class constructor function method field static var int char boolean void true false null this let do if else while return]
   SYMBOLS = %w[{ } ( ) [ ] . , ; + - * / & | < > = ~]
   OPERATORS = %w[+ - * / &amp; | &lt; &gt; =]
+  UNARY_OPS = %w[- ~]
 
   # return values of token_type
   KEYWORD = "keyword"
@@ -24,6 +27,7 @@ class JackTokenizer
     @current_line = ''
     @chars = []
     @current_token = nil
+    @prev = nil
   end
 
   def current_token
@@ -73,6 +77,9 @@ class JackTokenizer
     # @io.eof? == falseかつ空行が続く場合、NoMethodErrorが発生するのでそれを避けるためにnilを返す
     return nil if tokened.nil?
 
+    unless @current_token.nil?
+      @prev = { "token" => @current_token, "token_type" => token_type }
+    end
     @current_token = tokened
     @current_token
   end

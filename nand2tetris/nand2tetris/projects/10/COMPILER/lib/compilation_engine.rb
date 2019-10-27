@@ -233,7 +233,6 @@ class CompilationEngine
       case @t.current_token
       when "let"
         compile_let
-        @t.advance
       when "if"
         compile_if
       when "while"
@@ -265,11 +264,18 @@ class CompilationEngine
     out("</doStatement>")
   end
 
-  def out_subroutine_call
-    # token::(subroutineName | className | varName)
-    expect_identifier
+  # compile_termからはトークンを先読みした状態で呼ばれる可能性があるので、
+  # 引数の有無で先読み済みか否かを判定する
+  def out_subroutine_call(identifier = nil, token_type = nil)
+    if identifier
+      out("<#{token_type}> #{identifier} </#{token_type}>")
+    else identifier
+      # token::(subroutineName | className | varName)
+      expect_identifier
 
-    @t.advance
+      @t.advance
+    end
+
     if @t.current_token == "."
       expect_symbol(".", with_advance: false)
       # token:subroutineName
@@ -305,7 +311,14 @@ class CompilationEngine
     expect_symbol(["="], with_advance: false)
     @t.advance
     compile_expression
-    expect_symbol([";"], with_advance: false)
+    # pp @t
+    if @t.current_token == ";"
+      expect_symbol([";"], with_advance: false)
+      @t.advance
+    else
+      prev = @t.prev
+      out("<#{prev["token_type"]}> #{prev["token"]} </#{prev["token_type"]}>")
+    end
 
     @indent_level -= 1
     out("</letStatement>")
@@ -382,9 +395,11 @@ class CompilationEngine
     out("<expression>")
     @indent_level += 1
 
-    compile_term
+    token = compile_term
+    unless JackTokenizer::OPERATORS.include?(token)
+      @t.advance
+    end
 
-    @t.advance
     while JackTokenizer::OPERATORS.include?(@t.current_token)
       expect_symbol(JackTokenizer::OPERATORS, with_advance: false)
       @t.advance
@@ -406,9 +421,58 @@ class CompilationEngine
   def compile_term
     out("<term>")
     @indent_level += 1
-    simple_out_token(with_advance: false)
+
+    check_target_token_type = @t.token_type
+    if check_target_token_type == JackTokenizer::IDENTIFIER
+      identifier = @t.current_token
+      token_type = @t.token_type
+      @t.advance
+      case @t.current_token
+      when "[", "("
+        out("<#{token_type}> #{identifier} </#{token_type}>")
+        expect_symbol(["[", "("], with_advance: false)
+        @t.advance
+        compile_expression
+        expect_symbol([")", "]"], with_advance: false)
+      when "."
+        out_subroutine_call(identifier, token_type)
+      else
+        # FIXME: ここにOPERATORSが来た時の対処方法を考えるところから
+        # OPERATORSが来たら`term (op term)`みたいにする必要がある
+        out("<#{token_type}> #{identifier} </#{token_type}>")
+        unless check_target_token_type == JackTokenizer::IDENTIFIER ||
+          JackTokenizer::OPERATORS.include?(@t.current_token)
+          out("<#{@t.token_type}> #{@t.current_token} </#{@t.token_type}>")
+        end
+      end
+    elsif @t.current_token == "("
+      expect_symbol("(", with_advance: false)
+      @t.advance
+      compile_expression
+
+      prev = @t.prev
+      # ここは常に")"が来るはずだが、先読みをしているためずれる可能性がある
+      # 先読みしてずれた場合はprevに")"がはいっている
+      if prev["token"] == ")"
+        out("<#{prev["token_type"]}> #{prev["token"]} </#{prev["token_type"]}>")
+      else
+        simple_out_token(with_advance: false)
+      end
+    elsif JackTokenizer::UNARY_OPS.include?(@t.current_token)
+      simple_out_token(with_advance: false)
+      @t.advance
+      compile_term
+    else
+      simple_out_token(with_advance: false)
+    end
+
     @indent_level -= 1
     out("</term>")
+
+    if check_target_token_type == JackTokenizer::IDENTIFIER &&
+      JackTokenizer::OPERATORS.include?(@t.current_token)
+      return @t.current_token
+    end
   end
 
   # コンマで分離された式のリスト（空の可能性もある）をコンパイルする
