@@ -10,6 +10,8 @@ class Square {
     let square = square;
     while (key) {
       let key = key;
+      do moveSquare();
+      do square.run();
     }
     return;
   }
@@ -25,6 +27,7 @@ class Square {
 }
 EOS
   }
+      # do square.run(0, 0, 30);
 
   # constructor SquareGame new() {
   #   let square = square;
@@ -176,6 +179,26 @@ class Square {
               </expression>
               <symbol> ; </symbol>
             </letStatement>
+            <doStatement>
+              <keyword> do </keyword>
+              <identifier> moveSquare </identifier>
+              <symbol> ( </symbol>
+              <expressionList>
+              </expressionList>
+              <symbol> ) </symbol>
+              <symbol> ; </symbol>
+            </doStatement>
+            <doStatement>
+              <keyword> do </keyword>
+              <identifier> square </identifier>
+              <symbol> . </symbol>
+              <identifier> run </identifier>
+              <symbol> ( </symbol>
+              <expressionList>
+              </expressionList>
+              <symbol> ) </symbol>
+              <symbol> ; </symbol>
+            </doStatement>
           </statements>
           <symbol> } </symbol>
         </whileStatement>
@@ -340,3 +363,32 @@ end
 #   do Memory.deAlloc(this);
 #   return;
 # }
+
+            # <doStatement>
+            #   <keyword> do </keyword>
+            #   <identifier> square </identifier>
+            #   <symbol> . </symbol>
+            #   <identifier> run </identifier>
+            #   <symbol> ( </symbol>
+            #   <expressionList>
+            #     <expression>
+            #       <term>
+            #         <integerConstant> 0 </integerConstant>
+            #       </term>
+            #     </expression>
+            #     <symbol> , </symbol>
+            #     <expression>
+            #       <term>
+            #         <integerConstant> 0 </integerConstant>
+            #       </term>
+            #     </expression>
+            #     <symbol> , </symbol>
+            #     <expression>
+            #       <term>
+            #         <integerConstant> 30 </integerConstant>
+            #       </term>
+            #     </expression>
+            #   </expressionList>
+            #   <symbol> ) </symbol>
+            #   <symbol> ; </symbol>
+            # </doStatement>

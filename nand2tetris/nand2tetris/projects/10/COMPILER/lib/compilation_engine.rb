@@ -225,7 +225,6 @@ class CompilationEngine
   end
 
   # 一連の文をコンパイルする。波カッコ"{}"は含まない
-  # FIXME: from here
   def compile_statements
     out("<statements>")
     @indent_level += 1
@@ -257,9 +256,31 @@ class CompilationEngine
   def compile_do
     out("<doStatement>")
     @indent_level += 1
+
+    expect_keyword("do", with_advance: false)
+    out_subroutine_call
+    expect_symbol(";")
     # subroutineCallが面倒すぎるので一旦skip
     @indent_level -= 1
     out("</doStatement>")
+  end
+
+  def out_subroutine_call
+    # token::(subroutineName | className | varName)
+    expect_identifier
+
+    @t.advance
+    if @t.current_token == "."
+      expect_symbol(".", with_advance: false)
+      # token:subroutineName
+      expect_identifier
+      @t.advance
+    end
+
+    expect_symbol("(", with_advance: false)
+    @t.advance
+    compile_expression_list
+    expect_symbol(")", with_advance: false)
   end
 
   # let 文をコンパイルする
@@ -390,5 +411,16 @@ class CompilationEngine
 
   # コンマで分離された式のリスト（空の可能性もある）をコンパイルする
   def compile_expression_list
+    out("<expressionList>")
+    @indent_level += 1
+
+    unless @t.current_token == ")"
+      while @t.current_token == ","
+        compile_expression
+      end
+    end
+
+    @indent_level -= 1
+    out("</expressionList>")
   end
 end
