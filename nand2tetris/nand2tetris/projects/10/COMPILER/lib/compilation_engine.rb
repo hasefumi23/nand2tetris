@@ -266,9 +266,13 @@ class CompilationEngine
     out("</doStatement>")
   end
 
-  def out_subroutine_call
-    # token::(subroutineName | className | varName)
-    expect_identifier
+  def out_subroutine_call(with_advance: true)
+    if with_advance
+      # token::(subroutineName | className | varName)
+      expect_identifier
+    else
+      expect_identifier(with_advance: with_advance)
+    end
 
     @t.advance
     if @t.current_token == "."
@@ -408,10 +412,27 @@ class CompilationEngine
     out("<term>")
     @indent_level += 1
 
-    if JackTokenizer::UNARY_OPS.include?(@t.current_token)
+    if @t.current_token_type == JackTokenizer::IDENTIFIER
+      if @t.next_token == "["
+        expect_identifier(with_advance: false)
+        expect_symbol(["["])
+        @t.advance
+        compile_expression
+        expect_symbol(["]"], with_advance: false)
+      elsif ["(", "."].include?(@t.next_token)
+        out_subroutine_call(with_advance: false)
+      else
+        simple_out_token(with_advance: false)
+      end
+    elsif JackTokenizer::UNARY_OPS.include?(@t.current_token)
       simple_out_token(with_advance: false)
       @t.advance
       compile_term
+    elsif @t.current_token == "("
+      simple_out_token(with_advance: false)
+      @t.advance
+      compile_expression
+      expect_symbol([")"], with_advance: false)
     else
       simple_out_token(with_advance: false)
     end

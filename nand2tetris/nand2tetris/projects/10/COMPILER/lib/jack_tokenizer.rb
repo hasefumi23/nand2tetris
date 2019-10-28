@@ -80,7 +80,7 @@ class JackTokenizer
     tokened = tokenize_line
     p "tokened: #{tokened.inspect}" if DEBUG
     # @io.eof? == falseかつ空行が続く場合、NoMethodErrorが発生するのでそれを避けるためにnilを返す
-    return nil if tokened.nil? && @next_token
+    return nil if tokened.nil? && @next_token.nil?
 
     @current_token = @next_token
     @next_token = tokened
