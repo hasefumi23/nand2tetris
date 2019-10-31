@@ -10,6 +10,7 @@ class JackTokenizer
   KEY_WORDS = %w[class constructor function method field static var int char boolean void true false null this let do if else while return]
   SYMBOLS = %w[{ } ( ) [ ] . , ; + - * / & | < > = ~]
   OPERATORS = %w[+ - * / &amp; | &lt; &gt; =]
+  UNARY_OPS = %w[- ~]
 
   # return values of token_type
   KEYWORD = "keyword"
@@ -26,20 +27,28 @@ class JackTokenizer
     @current_token = nil
   end
 
-  def current_token
-    if token_type == "stringConstant"
+  def sanitize_token(token)
+    if token_type(token) == "stringConstant"
       # stringConstantの場合必ず"(ダブルクオート)で囲んでいるのでそれを取り除く
-      @current_token[1..-2]
-    elsif token_type == "symbol"
-      case @current_token
+      token[1..-2]
+    elsif token_type(token) == "symbol"
+      case token
       when "<" then "&lt;"
       when ">" then "&gt;"
       when "&" then "&amp;"
-      else @current_token
+      else token
       end
     else
-      @current_token
+      token
     end
+  end
+
+  def current_token
+    sanitize_token(@current_token)
+  end
+
+  def next_token
+    sanitize_token(@next_token)
   end
 
   # 入力にまだトークンは存在するか？
@@ -71,9 +80,10 @@ class JackTokenizer
     tokened = tokenize_line
     p "tokened: #{tokened.inspect}" if DEBUG
     # @io.eof? == falseかつ空行が続く場合、NoMethodErrorが発生するのでそれを避けるためにnilを返す
-    return nil if tokened.nil?
+    return nil if tokened.nil? && @next_token.nil?
 
-    @current_token = tokened
+    @current_token = @next_token
+    @next_token = tokened
     @current_token
   end
 
@@ -145,21 +155,29 @@ class JackTokenizer
     word
   end
 
+  def next_token_type
+    token_type(@next_token)
+  end
+
+  def current_token_type
+    token_type(@current_token)
+  end
+
   # KEYWORD、 SYMBOL、 IDENTIFIER、 INT_CONST、 STRING_CONST
   # 現トークンの種類を返す
-  def token_type
-    if KEY_WORDS.include?(@current_token)
+  def token_type(token)
+    if KEY_WORDS.include?(token)
       KEYWORD
-    elsif SYMBOLS.include?(@current_token)
+    elsif SYMBOLS.include?(token)
       SYMBOL
-    elsif @current_token.start_with?('"') && @current_token.end_with?('"')
+    elsif token.start_with?('"') && token.end_with?('"')
       STRING_CONSTANT
-    elsif @current_token =~ /^\d+$/
+    elsif token =~ /^\d+$/
       INTEGER_CONSTANT
-    elsif @current_token =~ /^\w+$/
+    elsif token =~ /^\w+$/
       IDENTIFIER
     else
-      raise StandardError.new("Unexpected token error: token = #{@current_token}")
+      raise StandardError.new("Unexpected token error: token = #{token}")
     end
   end
 
