@@ -13,7 +13,7 @@ class Main {
     return;
   }
 
-  function void test() {  // Added to test Jack syntax that is not use in
+  function void test(int Ax, int Ay) {  // Added to test Jack syntax that is not use in
     var int i, j;       // the Square files.
     var String s;
     var Array a;
@@ -116,15 +116,15 @@ class Square {
   <classVarDec>
     <keyword> static </keyword>
     <keyword> boolean </keyword>
-    <identifier> test </identifier>
+    <identifier> test STATIC - DEFINED - STATIC - 0 </identifier>
     <symbol> ; </symbol>
   </classVarDec>
   <classVarDec>
     <keyword> field </keyword>
     <keyword> int </keyword>
-    <identifier> x </identifier>
+    <identifier> x FIELD - DEFINED - FIELD - 0 </identifier>
     <symbol> , </symbol>
-    <identifier> y </identifier>
+    <identifier> y FIELD - DEFINED - FIELD - 0 </identifier>
     <symbol> ; </symbol>
   </classVarDec>
   <subroutineDec>
@@ -139,8 +139,8 @@ class Square {
       <symbol> { </symbol>
       <varDec>
         <keyword> var </keyword>
-        <identifier> SquareGame </identifier>
-        <identifier> game </identifier>
+        <identifier> SquareGame VAR - DEFINED - VAR - 0 </identifier>
+        <identifier> game VAR - DEFINED - VAR - 0 </identifier>
         <symbol> ; </symbol>
       </varDec>
       <statements>
@@ -197,6 +197,11 @@ class Square {
     <identifier> test </identifier>
     <symbol> ( </symbol>
     <parameterList>
+      <keyword> int </keyword>
+      <identifier> Ax ARG - DEFINED - ARG - 0 </identifier>
+      <symbol> , </symbol>
+      <keyword> int </keyword>
+      <identifier> Ay ARG - DEFINED - ARG - 0 </identifier>
     </parameterList>
     <symbol> ) </symbol>
     <subroutineBody>
@@ -204,21 +209,21 @@ class Square {
       <varDec>
         <keyword> var </keyword>
         <keyword> int </keyword>
-        <identifier> i </identifier>
+        <identifier> i VAR - DEFINED - VAR - 0 </identifier>
         <symbol> , </symbol>
-        <identifier> j </identifier>
+        <identifier> j VAR - DEFINED - VAR - 0 </identifier>
         <symbol> ; </symbol>
       </varDec>
       <varDec>
         <keyword> var </keyword>
-        <identifier> String </identifier>
-        <identifier> s </identifier>
+        <identifier> String VAR - DEFINED - VAR - 0 </identifier>
+        <identifier> s VAR - DEFINED - VAR - 0 </identifier>
         <symbol> ; </symbol>
       </varDec>
       <varDec>
         <keyword> var </keyword>
-        <identifier> Array </identifier>
-        <identifier> a </identifier>
+        <identifier> Array VAR - DEFINED - VAR - 0 </identifier>
+        <identifier> a VAR - DEFINED - VAR - 0 </identifier>
         <symbol> ; </symbol>
       </varDec>
       <statements>

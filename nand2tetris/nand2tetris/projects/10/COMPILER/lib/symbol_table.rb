@@ -1,3 +1,5 @@
+require_relative "sym"
+
 class SymbolTable
   attr_reader :class_hash, :subroutine_hash
 
@@ -35,7 +37,7 @@ class SymbolTable
 
   # 引数で与えられた名前の識別子を現在のスコープで探し、その属性を返す。その識別子が現在のスコープで見つからなければ、NONE を返す
   def kind_of(name)
-    (@subroutine_hash[name] || @class_hash[name]).kind
+    (@subroutine_hash[name] || @class_hash[name]).kind || "NONE"
   end
 
   # 引数で与えられた名前の識別子を現在のスコープで探し、その型を返す

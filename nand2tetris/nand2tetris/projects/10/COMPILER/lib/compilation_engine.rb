@@ -1,5 +1,7 @@
 require 'pry'
 
+require_relative "symbol_table"
+
 class CompilationEngine
   attr_reader :tree_stack, :current_node
 
@@ -19,6 +21,7 @@ class CompilationEngine
     @indent_level = 0
     @tree_stack = []
     @current_node = nil
+    @sym_table = SymbolTable.new
     @t.advance
     @t.advance
   end
@@ -33,15 +36,99 @@ class CompilationEngine
     tree_2_xml(@current_node)
   end
 
+  # 識別子のカテゴリ（var、argument、static、field、class、subroutine）
+  # 識別子は定義されているか（defined）、それとも、使用されているか（used）
+  # 識別子が 4 つの属性（var、argument、static、field）のうちどれに該当するか
+  # そして、シンボルテーブルによって、その識別子に割り当てられる実行番号は何か
+  def format_sym(category, defined_or_used, kind, index)
+    # FIXME: 最初は正確なindexを取得できないので0を固定で出力しておく
+    # FIXME: subroutineのスコープによるindexを正確に取れるようになったらちゃんと出力する
+    "#{category} - #{defined_or_used} - #{kind} - 0"
+  end
+
+  def format_id_tag(tag_name, var_name, formatted_sym)
+    out "<#{tag_name}> #{var_name} #{formatted_sym} </#{tag_name}>"
+  end
+
   def tree_2_xml(tree)
     return if tree&.empty?
 
     # pp tree
     case tree[0][0]
+    when "varDec"
+      out_side_tag_name = tree[0][0]
+      out "<#{out_side_tag_name}>"
+      @indent_level += 1
+      keywords = tree[0][1]
+      type = keywords[1][1]
+      keywords.each { |k| 
+        tag_name = k[0]
+        var_name = k[1]
+        if tag_name == "identifier"
+          @sym_table.define(var_name, type, "VAR")
+          index = @sym_table.index_of(var_name)
+          format_id_tag(tag_name, var_name, format_sym("VAR", "DEFINED", "VAR", index))
+        else
+          out "<#{tag_name}> #{var_name} </#{tag_name}>"
+        end
+      }
+
+      @indent_level -= 1
+      out "</#{out_side_tag_name}>"
+      tree_2_xml(tree[1..-1])
+    when "parameterList"
+      out "<#{tree[0][0]}>"
+      @indent_level += 1
+
+      unless tree[0][1]&.empty?
+        children = tree[0][1]
+        type_ary = children.slice!(0)
+        tree_2_xml([type_ary])
+        var_name_ary = children.slice!(0)
+        @sym_table.define(var_name_ary[1], type_ary[1], "ARG")
+        index = @sym_table.index_of(var_name_ary[1])
+        format_id_tag(var_name_ary[0], var_name_ary[1], format_sym("ARG", "DEFINED", "ARG", index))
+        while !children&.empty? && children[0][0] == "symbol" && children[0][1] == ","
+          tree_2_xml([children.slice!(0)])
+
+          type_ary = children.slice!(0)
+          tree_2_xml([type_ary])
+          var_name_ary = children.slice!(0)
+          @sym_table.define(var_name_ary[1], type_ary[1], "ARG")
+          index = @sym_table.index_of(var_name_ary[1])
+          format_id_tag(var_name_ary[0], var_name_ary[1], format_sym("ARG", "DEFINED", "ARG", index))
+        end
+      end
+
+      @indent_level -= 1
+      out "</#{tree[0][0]}>"
+      tree_2_xml(tree[1..-1])
+    when "classVarDec"
+      out "<#{tree[0][0]}>"
+      @indent_level += 1
+
+      keywords = tree[0][1]
+      static_or_field = keywords[0][1]
+      type = keywords[1][1]
+      keywords.each { |k| 
+        tag_name = k[0]
+        var_name = k[1]
+        if tag_name == "identifier"
+          @sym_table.define(var_name, type, static_or_field.upcase)
+          index = @sym_table.index_of(var_name)
+          format_id_tag(tag_name, var_name, format_sym(static_or_field.upcase, "DEFINED", static_or_field.upcase, index))
+        else
+          out "<#{tag_name}> #{var_name} </#{tag_name}>"
+        end
+      }
+
+      @indent_level -= 1
+      out "</#{tree[0][0]}>"
+      tree_2_xml(tree[1..-1])
     when "keyword", "symbol", "identifier", "stringConstant", "integerConstant"
-      tag_name = tree[0][0]
+      out_side_tag_name = tree[0][0]
       val = tree[0][1]
-      out "<#{tag_name}> #{val} </#{tag_name}>"
+      out "<#{out_side_tag_name}> #{val} </#{out_side_tag_name}>"
       tree_2_xml(tree.slice(1..-1))
     else
       out "<#{tree[0][0]}>"
