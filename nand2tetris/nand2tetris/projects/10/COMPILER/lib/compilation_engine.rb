@@ -54,11 +54,14 @@ class CompilationEngine
     return if tree&.empty?
 
     # pp tree
-    case tree[0][0]
-    when "varDec"
-      out_side_tag_name = tree[0][0]
-      out "<#{out_side_tag_name}>"
+    unless ["keyword", "symbol", "identifier", "stringConstant", "integerConstant"].include?(tree[0][0])
+      out "<#{tree[0][0]}>"
       @indent_level += 1
+    end
+    case tree[0][0]
+    # when "class"
+      
+    when "varDec"
       keywords = tree[0][1]
       type = keywords[1][1]
       keywords.each { |k| 
@@ -72,14 +75,7 @@ class CompilationEngine
           out "<#{tag_name}> #{var_name} </#{tag_name}>"
         end
       }
-
-      @indent_level -= 1
-      out "</#{out_side_tag_name}>"
-      tree_2_xml(tree[1..-1])
     when "parameterList"
-      out "<#{tree[0][0]}>"
-      @indent_level += 1
-
       unless tree[0][1]&.empty?
         children = tree[0][1]
         type_ary = children.slice!(0)
@@ -99,14 +95,7 @@ class CompilationEngine
           format_id_tag(var_name_ary[0], var_name_ary[1], format_sym("ARG", "DEFINED", "ARG", index))
         end
       end
-
-      @indent_level -= 1
-      out "</#{tree[0][0]}>"
-      tree_2_xml(tree[1..-1])
     when "classVarDec"
-      out "<#{tree[0][0]}>"
-      @indent_level += 1
-
       keywords = tree[0][1]
       static_or_field = keywords[0][1]
       type = keywords[1][1]
@@ -121,20 +110,16 @@ class CompilationEngine
           out "<#{tag_name}> #{var_name} </#{tag_name}>"
         end
       }
-
-      @indent_level -= 1
-      out "</#{tree[0][0]}>"
-      tree_2_xml(tree[1..-1])
     when "keyword", "symbol", "identifier", "stringConstant", "integerConstant"
       out_side_tag_name = tree[0][0]
       val = tree[0][1]
       out "<#{out_side_tag_name}> #{val} </#{out_side_tag_name}>"
       tree_2_xml(tree.slice(1..-1))
     else
-      out "<#{tree[0][0]}>"
-      @indent_level += 1
       tree_2_xml(tree[0][1])
+    end
 
+    unless ["keyword", "symbol", "identifier", "stringConstant", "integerConstant"].include?(tree[0][0])
       @indent_level -= 1
       out "</#{tree[0][0]}>"
       tree_2_xml(tree[1..-1])
