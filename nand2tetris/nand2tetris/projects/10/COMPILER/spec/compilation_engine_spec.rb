@@ -1,103 +1,44 @@
 RSpec.describe CompilationEngine do
   let(:contents) { 
     <<~"EOS"
-// This file is part of www.nand2tetris.org
-// and the book "The Elements of Computing Systems"
-// by Nisan and Schocken, MIT Press.
-// File name: projects/10/Square/Main.jack
-
-// (derived from projects/09/Square/Main.jack, with testing additions)
-
-/** Initializes a new Square Dance game and starts running it. */
 class Main {
-    static boolean test;    // Added for testing -- there is no static keyword
-                            // in the Square files.
-    function void main() {
-      var SquareGame game;
-      let game = SquareGame.new();
-      do game.run();
-      do game.dispose();
-      return;
-    }
+  static boolean test;    // Added for testing -- there is no static keyword
+  field int x, y; 
 
-    function void test() {  // Added to test Jack syntax that is not use in
-        var int i, j;       // the Square files.
-        var String s;
-        var Array a;
-        if (false) {
-            let s = "string constant";
-            let s = null;
-            let a[1] = a[2];
-        }
-        else {              // There is no else keyword in the Square files.
-            let i = i * (-j);
-            let j = j / (-2);   // note: unary negate constant 2
-            let i = i | j;
-        }
-        return;
+  function void main() {
+    var SquareGame game;
+    let game = SquareGame.new();
+    do game.run();
+    do game.dispose();
+    return;
+  }
+
+  function void test() {  // Added to test Jack syntax that is not use in
+    var int i, j;       // the Square files.
+    var String s;
+    var Array a;
+    if (false) {
+      let s = "string constant";
+      let s = null;
+      let a[1] = a[2];
     }
+    else {              // There is no else keyword in the Square files.
+      let i = i * (-j);
+      let j = j / (-2);   // note: unary negate constant 2
+      let i = i | j;
+    }
+    return;
+  }
 }
-
 EOS
   }
-      # do square.run(0, 0, 30);
 
-  # constructor SquareGame new() {
-  #   let square = square;
-  #   let direction = direction;
-  #   return square;
-  # }
-
-  # method void disposeA(int num, char str) {
-  # }
   let(:string_io) { StringIO.new(contents) }
   let(:tokenizer) { JackTokenizer.new("file_path") }
   let(:engine) { CompilationEngine.new(tokenizer) }
 
   before do
     allow(File).to receive(:open).and_return(string_io)
-  end
-
-  describe 'expect method' do
-    describe '#expect_keyword' do
-      let(:contents) { "clazz Square {}" }
-      
-      xit "raise NoExpectedKeywordError" do
-        expect { engine.expect_keyword("class") }.to raise_error(CompilationEngine::NoExpectedKeywordError)
-      end
-    end
-
-    describe '#expect_symbol' do
-      let(:contents) { "class Square []" }
-      
-      xit "raise NoExpectedSymbolError" do
-        expect{ engine.expect_symbol("[") }.to raise_error(CompilationEngine::NoExpectedSymbolError)
-      end
-    end
-
-    describe '#expect_integer_constant' do
-      let(:contents) { "class Square []" }
-      
-      xit "raise NotIntegerConstantError" do
-        expect{ engine.expect_integer_constant }.to raise_error(CompilationEngine::NotIntegerConstantError)
-      end
-    end
-
-    describe '#expect_string_constant' do
-      let(:contents) { "class Square []" }
-      
-      xit "raise NotStringConstantError" do
-        expect{ engine.expect_string_constant }.to raise_error(CompilationEngine::NotStringConstantError)
-      end
-    end
-
-    describe '#expect_identifier' do
-      let(:contents) { "class Square []" }
-      
-      xit "raise NotIdentifierError" do
-        expect{ engine.expect_identifier }.to raise_error(CompilationEngine::NotIdentifierError)
-      end
-    end
   end
 
   describe 'minimal compile_class' do
@@ -107,7 +48,25 @@ class Square {
 }
     EOS
     }
-    it 'output only class tokens' do
+
+    xit "build tree node" do
+      engine.compile_class
+      expect(engine.current_node).to eq(
+        [
+          [
+            ["class"],
+            [
+              ["keyword", "class"],
+              ["identifier", "Square"],
+              ["symbol", "{"],
+              ["symbol", "}"]
+            ]
+          ]
+        ]
+      )
+    end
+
+    xit 'output only class tokens' do
       expected_result = <<~"EOS"
 <class>
   <keyword> class </keyword>
@@ -117,11 +76,37 @@ class Square {
 </class>
       EOS
 
-      expect { engine.compile_class }.to output(expected_result).to_stdout
+      engine.compile_class
+      expect { engine.to_xml }.to output(expected_result).to_stdout
     end
   end
 
   describe 'compile_class' do
+    xit "build tree node" do
+      engine.compile_class
+      expect(engine.current_node).to eq(
+        [
+          [
+            "class",
+            [
+              ["keyword", "class"],
+              ["identifier", "Main"],
+              ["symbol", "{"],
+              [
+                "classVarDec",
+                [
+                  ["keyword", "static"],
+                  ["keyword", "boolean"],
+                  ["identifier", "test"],
+                  ["symbol", ";"]
+                ]
+              ],
+              ["symbol", "}"]
+            ]
+          ]
+        ]
+      )
+    end
     it 'return current token' do
       expected_result = <<~"EOS"
 <class>
@@ -132,6 +117,14 @@ class Square {
     <keyword> static </keyword>
     <keyword> boolean </keyword>
     <identifier> test </identifier>
+    <symbol> ; </symbol>
+  </classVarDec>
+  <classVarDec>
+    <keyword> field </keyword>
+    <keyword> int </keyword>
+    <identifier> x </identifier>
+    <symbol> , </symbol>
+    <identifier> y </identifier>
     <symbol> ; </symbol>
   </classVarDec>
   <subroutineDec>
@@ -369,115 +362,8 @@ class Square {
   <symbol> } </symbol>
 </class>
       EOS
-      expect { engine.compile_class }.to output(expected_result).to_stdout
+      engine.compile_class
+      expect { engine.to_xml }.to output(expected_result).to_stdout
     end
   end
 end
-  # <subroutineDec>
-  #   <keyword> constructor </keyword>
-  #   <identifier> SquareGame </identifier>
-  #   <identifier> new </identifier>
-  #   <symbol> ( </symbol>
-  #   <parameterList>
-  #   </parameterList>
-  #   <symbol> ) </symbol>
-  #   <subroutineBody>
-  #     <symbol> { </symbol>
-  #     <statements>
-  #       <letStatement>
-  #         <keyword> let </keyword>
-  #         <identifier> square </identifier>
-  #         <symbol> = </symbol>
-  #         <expression>
-  #           <term>
-  #             <identifier> square </identifier>
-  #           </term>
-  #         </expression>
-  #         <symbol> ; </symbol>
-  #       </letStatement>
-  #       <letStatement>
-  #         <keyword> let </keyword>
-  #         <identifier> direction </identifier>
-  #         <symbol> = </symbol>
-  #         <expression>
-  #           <term>
-  #             <identifier> direction </identifier>
-  #           </term>
-  #         </expression>
-  #         <symbol> ; </symbol>
-  #       </letStatement>
-  #       <returnStatement>
-  #         <keyword> return </keyword>
-  #         <expression>
-  #           <term>
-  #             <identifier> square </identifier>
-  #           </term>
-  #         </expression>
-  #         <symbol> ; </symbol>
-  #       </returnStatement>
-  #     </statements>
-  #     <symbol> } </symbol>
-  #   </subroutineBody>
-  # </subroutineDec>
-  # <subroutineDec>
-  #   <keyword> method </keyword>
-  #   <keyword> void </keyword>
-  #   <identifier> disposeA </identifier>
-  #   <symbol> ( </symbol>
-  #   <parameterList>
-  #     <keyword> int </keyword>
-  #     <identifier> num </identifier>
-  #     <symbol> , </symbol>
-  #     <keyword> char </keyword>
-  #     <identifier> str </identifier>
-  #   </parameterList>
-  #   <symbol> ) </symbol>
-  #   <subroutineBody>
-  #     <symbol> { </symbol>
-  #     <varDec>
-  #       <keyword> var </keyword>
-  #       <keyword> int </keyword>
-  #       <identifier> total </identifier>
-  #       <symbol> ; </symbol>
-  #     </varDec>
-  #     <symbol> } </symbol>
-  # </subroutineDec>
-
-# method void disposeA(int num, char str) {
-#   do Memory.deAlloc(this);
-#   return;
-# }
-
-# method void dispose() {
-#   do Memory.deAlloc(this);
-#   return;
-# }
-
-            # <doStatement>
-            #   <keyword> do </keyword>
-            #   <identifier> square </identifier>
-            #   <symbol> . </symbol>
-            #   <identifier> run </identifier>
-            #   <symbol> ( </symbol>
-            #   <expressionList>
-            #     <expression>
-            #       <term>
-            #         <integerConstant> 0 </integerConstant>
-            #       </term>
-            #     </expression>
-            #     <symbol> , </symbol>
-            #     <expression>
-            #       <term>
-            #         <integerConstant> 0 </integerConstant>
-            #       </term>
-            #     </expression>
-            #     <symbol> , </symbol>
-            #     <expression>
-            #       <term>
-            #         <integerConstant> 30 </integerConstant>
-            #       </term>
-            #     </expression>
-            #   </expressionList>
-            #   <symbol> ) </symbol>
-            #   <symbol> ; </symbol>
-            # </doStatement>

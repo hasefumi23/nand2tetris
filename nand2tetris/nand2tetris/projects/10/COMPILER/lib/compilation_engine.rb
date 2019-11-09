@@ -1,6 +1,8 @@
 require 'pry'
 
 class CompilationEngine
+  attr_reader :tree_stack, :current_node
+
   class NoExpectedKeywordError < StandardError; end
   class NoExpectedSymbolError < StandardError; end
   class NotIntegerConstantError < StandardError; end
@@ -8,11 +10,15 @@ class CompilationEngine
   class NotIdentifierError < StandardError; end
   class NoExpectationError < StandardError; end
 
+  DEBUG_MODE = false
+
   # 与えられた入力と出力に対して新しいコンパイルエンジンを
   # 生成する。次に呼ぶルーチンはcompileClass()でなければならない
   def initialize(tokenizer)
     @t = tokenizer
     @indent_level = 0
+    @tree_stack = []
+    @current_node = nil
     @t.advance
     @t.advance
   end
@@ -22,9 +28,66 @@ class CompilationEngine
     puts(str)
   end
 
+  def to_xml
+    # pp @current_node.pop
+    tree_2_xml(@current_node)
+  end
+
+  def tree_2_xml(tree)
+    return if tree&.empty?
+
+    # pp tree
+    case tree[0][0]
+    when "keyword", "symbol", "identifier", "stringConstant", "integerConstant"
+      tag_name = tree[0][0]
+      val = tree[0][1]
+      out "<#{tag_name}> #{val} </#{tag_name}>"
+      tree_2_xml(tree.slice(1..-1))
+    else
+      out "<#{tree[0][0]}>"
+      @indent_level += 1
+      tree_2_xml(tree[0][1])
+
+      @indent_level -= 1
+      out "</#{tree[0][0]}>"
+      tree_2_xml(tree[1..-1])
+    end
+  end
+
+  def debug
+    if DEBUG_MODE
+      pp @tree_stack
+      pp @current_node
+    end
+  end
+
+  def new_node(node_name)
+    if @current_node.nil?
+      @tree_stack << []
+    else
+      @tree_stack << @current_node
+    end
+    @current_node = []
+    debug
+  end
+
+  def close_node(node_name)
+    if @current_node.nil?
+      raise StandardError.new("このエラーは通常発生し得ない")
+    else
+      prev_node = @tree_stack.pop
+      prev_node << [node_name, @current_node]
+      @current_node = prev_node
+    end
+    debug
+  end
+
   def simple_out_token(with_advance: true)
     @t.advance if with_advance
-    out("<#{@t.current_token_type}> #{@t.current_token} </#{@t.current_token_type}>")
+    token_type = @t.current_token_type
+    token = @t.current_token
+    # out("<#{token_type}> #{token} </#{token_type}>")
+    @current_node << [token_type, token]
   end
 
   def expect_keyword(keywords, with_advance: true)
@@ -91,7 +154,8 @@ class CompilationEngine
   # 最初は token_type などのチェックは殆ど無しでいこう
   # バグの調査のためのデバッグ出力のみする感じで
   def compile_class
-    out("<class>")
+    # out("<class>")
+    new_node("class")
     @indent_level += 1
 
     expect_keyword(["class"], with_advance: false)
@@ -110,13 +174,14 @@ class CompilationEngine
     expect_symbol(["}"])
 
     @indent_level -= 1
-    out("</class>")
+    close_node("class")
+    # out("</class>")
   end
 
   # スタティック宣言またはフィールド宣言をコンパイルする
   # (’static’ | ’field’) type varName (’,’ varName)* ’;’
   def compile_class_var_dec
-    out("<classVarDec>")
+    new_node("classVarDec")
     @indent_level += 1
 
     expect_keyword(%w[static field], with_advance: false)
@@ -135,7 +200,7 @@ class CompilationEngine
     expect_symbol([";"], with_advance: false)
 
     @indent_level -= 1
-    out("</classVarDec>")
+    close_node("classVarDec")
     @t.advance
   end
 
@@ -160,7 +225,7 @@ class CompilationEngine
   end
 
   def compile_var_dec
-    out("<varDec>")
+    new_node("varDec")
     @indent_level += 1
     expect_keyword(["var"], with_advance: false)
     expect_type
@@ -177,12 +242,12 @@ class CompilationEngine
 
     expect_symbol([";"], with_advance: false)
     @indent_level -= 1
-    out("</varDec>")
+    close_node("varDec")
   end
 
   # メソッド、ファンクション、コンストラクタをコンパイルする
   def compile_subroutine
-    out("<subroutineDec>")
+    new_node("subroutineDec")
     @indent_level += 1
     expect_keyword(%w[constructor function method], with_advance: false)
     simple_out_token
@@ -190,23 +255,23 @@ class CompilationEngine
     expect_symbol(["("])
 
     @t.advance
-    out("<parameterList>")
+    new_node("parameterList")
     if type_syntax?
       compile_parameter_list
     end
-    out("</parameterList>")
+    close_node("parameterList")
 
     expect_symbol([")"], with_advance: false)
     @t.advance
     compile_subroutine_body
 
     @indent_level -= 1
-    out("</subroutineDec>")
+    close_node("subroutineDec")
     @t.advance
   end
 
   def compile_subroutine_body
-    out("<subroutineBody>")
+    new_node("subroutineBody")
     @indent_level += 1
 
     expect_symbol(["{"], with_advance: false)
@@ -222,12 +287,12 @@ class CompilationEngine
     expect_symbol(["}"], with_advance: false)
 
     @indent_level -= 1
-    out("</subroutineBody>")
+    close_node("subroutineBody")
   end
 
   # 一連の文をコンパイルする。波カッコ"{}"は含まない
   def compile_statements
-    out("<statements>")
+    new_node("statements")
     @indent_level += 1
 
     while %w[let if while do return].include?(@t.current_token)
@@ -250,20 +315,19 @@ class CompilationEngine
     end
 
     @indent_level -= 1
-    out("</statements>")
+    close_node("statements")
   end
 
   # do 文をコンパイルする
   def compile_do
-    out("<doStatement>")
+    new_node("doStatement")
     @indent_level += 1
 
     expect_keyword("do", with_advance: false)
     out_subroutine_call
     expect_symbol(";")
-    # subroutineCallが面倒すぎるので一旦skip
     @indent_level -= 1
-    out("</doStatement>")
+    close_node("doStatement")
   end
 
   def out_subroutine_call(with_advance: true)
@@ -290,7 +354,7 @@ class CompilationEngine
 
   # let 文をコンパイルする
   def compile_let
-    out("<letStatement>")
+    new_node("letStatement")
     @indent_level += 1
 
     expect_keyword(["let"], with_advance: false)
@@ -313,12 +377,12 @@ class CompilationEngine
     expect_symbol([";"], with_advance: false)
 
     @indent_level -= 1
-    out("</letStatement>")
+    close_node("letStatement")
   end
 
   # while 文をコンパイルする
   def compile_while
-    out("<whileStatement>")
+    new_node("whileStatement")
     @indent_level += 1
     expect_keyword(["while"], with_advance: false)
 
@@ -335,12 +399,12 @@ class CompilationEngine
 
     expect_symbol(["}"], with_advance: false)
     @indent_level -= 1
-    out("</whileStatement>")
+    close_node("whileStatement")
   end
 
   # return 文をコンパイルする
   def compile_return
-    out("<returnStatement>")
+    new_node("returnStatement")
     @indent_level += 1
     expect_keyword(["return"], with_advance: false)
 
@@ -351,12 +415,12 @@ class CompilationEngine
 
     expect_symbol([";"], with_advance: false)
     @indent_level -= 1
-    out("</returnStatement>")
+    close_node("returnStatement")
   end
 
   # if 文をコンパイルする
   def compile_if
-    out("<ifStatement>")
+    new_node("ifStatement")
     @indent_level += 1
     expect_keyword(["if"], with_advance: false)
     expect_symbol(["("])
@@ -379,12 +443,12 @@ class CompilationEngine
       @t.advance
     end
     @indent_level -= 1
-    out("</ifStatement>")
+    close_node("ifStatement")
   end
 
   # 式をコンパイルする
   def compile_expression
-    out("<expression>")
+    new_node("expression")
     @indent_level += 1
 
     compile_term
@@ -398,7 +462,7 @@ class CompilationEngine
     end
 
     @indent_level -= 1
-    out("</expression>")
+    close_node("expression")
   end
 
   # termをコンパイルする。このルーチンは、やや複雑であり、
@@ -409,7 +473,7 @@ class CompilationEngine
   # そのトークンが“[”か“(”か“.”のどれに該当するかを調べれば、現トークンの種類を決定することができる
   # 他のトークンの場合は現トークンに含まないので、先読みを行う必要はない
   def compile_term
-    out("<term>")
+    new_node("term")
     @indent_level += 1
 
     if @t.current_token_type == JackTokenizer::IDENTIFIER
@@ -438,12 +502,12 @@ class CompilationEngine
     end
 
     @indent_level -= 1
-    out("</term>")
+    close_node("term")
   end
 
   # コンマで分離された式のリスト（空の可能性もある）をコンパイルする
   def compile_expression_list
-    out("<expressionList>")
+    new_node("expressionList")
     @indent_level += 1
 
     unless @t.current_token == ")"
@@ -456,6 +520,6 @@ class CompilationEngine
     end
 
     @indent_level -= 1
-    out("</expressionList>")
+    close_node("expressionList")
   end
 end
