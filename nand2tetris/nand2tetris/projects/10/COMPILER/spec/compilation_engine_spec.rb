@@ -198,10 +198,10 @@ class Square {
     <symbol> ( </symbol>
     <parameterList>
       <keyword> int </keyword>
-      <identifier> Ax ARG - DEFINED - ARG - 0 </identifier>
+      <identifier> Ax ARG - DEFINED - ARG - 1 </identifier>
       <symbol> , </symbol>
       <keyword> int </keyword>
-      <identifier> Ay ARG - DEFINED - ARG - 1 </identifier>
+      <identifier> Ay ARG - DEFINED - ARG - 2 </identifier>
     </parameterList>
     <symbol> ) </symbol>
     <subroutineBody>

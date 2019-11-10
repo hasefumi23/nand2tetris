@@ -35,7 +35,7 @@ class CompilationEngine
   def to_xml
     # pp @current_node.pop
     tree_2_xml(@current_node)
-    # pp @sym_table
+    pp @sym_table
   end
 
   # 識別子のカテゴリ（var、argument、static、field、class、subroutine）
@@ -57,6 +57,7 @@ class CompilationEngine
 
     if tree[0][0] == "subroutineDec"
       @sym_table.start_subroutine
+      @sym_table.define("this", @class_name, "ARG")
     end
     # pp tree
     unless ["keyword", "symbol", "identifier", "stringConstant", "integerConstant"].include?(tree[0][0])
