@@ -35,7 +35,7 @@ class CompilationEngine
   def to_xml
     # pp @current_node.pop
     tree_2_xml(@current_node)
-    pp @sym_table
+    # pp @sym_table
   end
 
   # 識別子のカテゴリ（var、argument、static、field、class、subroutine）
@@ -43,8 +43,6 @@ class CompilationEngine
   # 識別子が 4 つの属性（var、argument、static、field）のうちどれに該当するか
   # そして、シンボルテーブルによって、その識別子に割り当てられる実行番号は何か
   def format_sym(category, defined_or_used, kind, index)
-    # FIXME: 最初は正確なindexを取得できないので0を固定で出力しておく
-    # FIXME: subroutineのスコープによるindexを正確に取れるようになったらちゃんと出力する
     "#{category} - #{defined_or_used} - #{kind} - #{index}"
   end
 
@@ -55,17 +53,18 @@ class CompilationEngine
   def tree_2_xml(tree)
     return if tree&.empty?
 
-    if tree[0][0] == "subroutineDec"
+    node_name = tree[0][0]
+    if node_name == "subroutineDec"
       @sym_table.start_subroutine
       @sym_table.define("this", @class_name, "ARG")
     end
-    # pp tree
-    unless ["keyword", "symbol", "identifier", "stringConstant", "integerConstant"].include?(tree[0][0])
-      out "<#{tree[0][0]}>"
+
+    unless ["keyword", "symbol", "identifier", "stringConstant", "integerConstant"].include?(node_name)
+      out "<#{node_name}>"
       @indent_level += 1
     end
 
-    case tree[0][0]
+    case node_name
     when "varDec"
       children = tree[0][1]
       type = children[1][1]
@@ -73,9 +72,8 @@ class CompilationEngine
         tag_name = el[0]
         var_name = el[1]
         if i != 0 && i.even?
-          @sym_table.define(var_name, type, "VAR")
-          index = @sym_table.index_of(var_name)
-          format_id_tag(tag_name, var_name, format_sym("VAR", "DEFINED", "VAR", index))
+          sym = @sym_table.define(var_name, type, "VAR")
+          format_id_tag(tag_name, var_name, format_sym("VAR", "DEFINED", "VAR", sym.index))
         else
           tree_2_xml([el])
         end
@@ -88,9 +86,8 @@ class CompilationEngine
           tag_name = el[0]
           var_name = el[1]
           if i % 3 == 1
-            @sym_table.define(var_name, type, "ARG")
-            index = @sym_table.index_of(var_name)
-            format_id_tag(tag_name, var_name, format_sym("ARG", "DEFINED", "ARG", index))
+            sym = @sym_table.define(var_name, type, "ARG")
+            format_id_tag(tag_name, var_name, format_sym("ARG", "DEFINED", "ARG", sym.index))
           else
             tree_2_xml([el])
           end
@@ -104,29 +101,27 @@ class CompilationEngine
         tag_name = k[0]
         var_name = k[1]
         if tag_name == "identifier"
-          @sym_table.define(var_name, type, static_or_field.upcase)
-          index = @sym_table.index_of(var_name)
-          format_id_tag(tag_name, var_name, format_sym(static_or_field.upcase, "DEFINED", static_or_field.upcase, index))
+          sym = @sym_table.define(var_name, type, static_or_field.upcase)
+          format_id_tag(tag_name, var_name, format_sym(static_or_field.upcase, "DEFINED", static_or_field.upcase, sym.index))
         else
           out "<#{tag_name}> #{var_name} </#{tag_name}>"
         end
       }
     when "keyword", "symbol", "identifier", "stringConstant", "integerConstant"
-      out_side_tag_name = tree[0][0]
+      out_side_tag_name = node_name
       val = tree[0][1]
-      if tree[0][0] == "identifier"
-        kind = @sym_table.kind_of(val)
-        type = @sym_table.type_of(val)
-        index = @sym_table.index_of(val)
+      if node_name == "identifier"
+        sym = @sym_table.sym_of(val)
+        kind, type, index = sym&.kind || "NONE", sym&.type, sym&.index
         next_token = tree&.at(1)&.at(1)
         if kind == "NONE"
           if !next_token.nil? && ["(", "["].include?(next_token)
-            format_id_tag(out_side_tag_name, val, format_sym("FUNCTION", "USED", kind.upcase, index))
+            format_id_tag(out_side_tag_name, val, format_sym("FUNCTION", "USED", kind&.upcase, index))
           else
-            format_id_tag(out_side_tag_name, val, format_sym("CLASS", "USED", kind.upcase, index))
+            format_id_tag(out_side_tag_name, val, format_sym("CLASS", "USED", kind&.upcase, index))
           end
         else
-          format_id_tag(out_side_tag_name, val, format_sym("CLASS", "USED", kind.upcase, index))
+          format_id_tag(out_side_tag_name, val, format_sym("CLASS", "USED", kind&.upcase, index))
         end
       else
         out "<#{out_side_tag_name}> #{val} </#{out_side_tag_name}>"
@@ -136,9 +131,9 @@ class CompilationEngine
       tree_2_xml(tree[0][1])
     end
 
-    unless ["keyword", "symbol", "identifier", "stringConstant", "integerConstant"].include?(tree[0][0])
+    unless ["keyword", "symbol", "identifier", "stringConstant", "integerConstant"].include?(node_name)
       @indent_level -= 1
-      out "</#{tree[0][0]}>"
+      out "</#{node_name}>"
       tree_2_xml(tree[1..-1])
     end
   end

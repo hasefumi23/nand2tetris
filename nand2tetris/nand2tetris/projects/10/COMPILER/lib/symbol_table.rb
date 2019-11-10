@@ -27,6 +27,7 @@ class SymbolTable
     when "ARG", "VAR" then @subroutine_hash
     end
     hash[name] = sym
+    sym
   end
 
   # 引数で与えられた属性について、それが現在のスコープで定義されている数を返す
@@ -36,6 +37,10 @@ class SymbolTable
     when *%w[ARG VAR] then @subroutine_hash
     end
     hash.select { |_, s| s.kind == kind }.size
+  end
+
+  def sym_of(name)
+    @subroutine_hash[name] || @class_hash[name]
   end
 
   # 引数で与えられた名前の識別子を現在のスコープで探し、その属性を返す。その識別子が現在のスコープで見つからなければ、NONE を返す
