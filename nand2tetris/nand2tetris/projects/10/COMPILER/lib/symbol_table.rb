@@ -7,11 +7,14 @@ class SymbolTable
   def initialize
     @class_hash = {}
     @subroutine_hash = {}
+    # デバッグ用
+    @past_subroutine_hashes = []
   end
 
   # 新しいサブルーチンのスコープを開始する
   # （つまり、サブルーチンのシンボルテーブルをリセットする）
   def start_subroutine
+    @past_subroutine_hashes << @subroutine_hash unless @subroutine_hash.empty?
     @subroutine_hash = {}
   end
 
@@ -37,16 +40,16 @@ class SymbolTable
 
   # 引数で与えられた名前の識別子を現在のスコープで探し、その属性を返す。その識別子が現在のスコープで見つからなければ、NONE を返す
   def kind_of(name)
-    (@subroutine_hash[name] || @class_hash[name]).kind || "NONE"
+    (@subroutine_hash[name] || @class_hash[name])&.kind || "NONE"
   end
 
   # 引数で与えられた名前の識別子を現在のスコープで探し、その型を返す
   def type_of(name)
-    (@subroutine_hash[name] || @class_hash[name]).type
+    (@subroutine_hash[name] || @class_hash[name])&.type
   end
 
   # 引数で与えられた名前の識別子を現在のスコープで探し、そのインデックスを返す 
   def index_of(name)
-    (@subroutine_hash[name] || @class_hash[name]).index
+    (@subroutine_hash[name] || @class_hash[name])&.index
   end
 end

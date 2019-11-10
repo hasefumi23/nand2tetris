@@ -22,6 +22,7 @@ class CompilationEngine
     @tree_stack = []
     @current_node = nil
     @sym_table = SymbolTable.new
+    @class_name = nil
     @t.advance
     @t.advance
   end
@@ -34,6 +35,7 @@ class CompilationEngine
   def to_xml
     # pp @current_node.pop
     tree_2_xml(@current_node)
+    # pp @sym_table
   end
 
   # 識別子のカテゴリ（var、argument、static、field、class、subroutine）
@@ -43,7 +45,7 @@ class CompilationEngine
   def format_sym(category, defined_or_used, kind, index)
     # FIXME: 最初は正確なindexを取得できないので0を固定で出力しておく
     # FIXME: subroutineのスコープによるindexを正確に取れるようになったらちゃんと出力する
-    "#{category} - #{defined_or_used} - #{kind} - 0"
+    "#{category} - #{defined_or_used} - #{kind} - #{index}"
   end
 
   def format_id_tag(tag_name, var_name, formatted_sym)
@@ -53,47 +55,45 @@ class CompilationEngine
   def tree_2_xml(tree)
     return if tree&.empty?
 
+    if tree[0][0] == "subroutineDec"
+      @sym_table.start_subroutine
+    end
     # pp tree
     unless ["keyword", "symbol", "identifier", "stringConstant", "integerConstant"].include?(tree[0][0])
       out "<#{tree[0][0]}>"
       @indent_level += 1
     end
+
     case tree[0][0]
-    # when "class"
-      
     when "varDec"
-      keywords = tree[0][1]
-      type = keywords[1][1]
-      keywords.each { |k| 
-        tag_name = k[0]
-        var_name = k[1]
-        if tag_name == "identifier"
+      children = tree[0][1]
+      type = children[1][1]
+      children.each_with_index { |el, i|
+        tag_name = el[0]
+        var_name = el[1]
+        if i != 0 && i.even?
           @sym_table.define(var_name, type, "VAR")
           index = @sym_table.index_of(var_name)
           format_id_tag(tag_name, var_name, format_sym("VAR", "DEFINED", "VAR", index))
         else
-          out "<#{tag_name}> #{var_name} </#{tag_name}>"
+          tree_2_xml([el])
         end
       }
     when "parameterList"
       unless tree[0][1]&.empty?
         children = tree[0][1]
-        type_ary = children.slice!(0)
-        tree_2_xml([type_ary])
-        var_name_ary = children.slice!(0)
-        @sym_table.define(var_name_ary[1], type_ary[1], "ARG")
-        index = @sym_table.index_of(var_name_ary[1])
-        format_id_tag(var_name_ary[0], var_name_ary[1], format_sym("ARG", "DEFINED", "ARG", index))
-        while !children&.empty? && children[0][0] == "symbol" && children[0][1] == ","
-          tree_2_xml([children.slice!(0)])
-
-          type_ary = children.slice!(0)
-          tree_2_xml([type_ary])
-          var_name_ary = children.slice!(0)
-          @sym_table.define(var_name_ary[1], type_ary[1], "ARG")
-          index = @sym_table.index_of(var_name_ary[1])
-          format_id_tag(var_name_ary[0], var_name_ary[1], format_sym("ARG", "DEFINED", "ARG", index))
-        end
+        children.each_with_index { |el, i|
+          type = children[i - 1][1]
+          tag_name = el[0]
+          var_name = el[1]
+          if i % 3 == 1
+            @sym_table.define(var_name, type, "ARG")
+            index = @sym_table.index_of(var_name)
+            format_id_tag(tag_name, var_name, format_sym("ARG", "DEFINED", "ARG", index))
+          else
+            tree_2_xml([el])
+          end
+        }
       end
     when "classVarDec"
       keywords = tree[0][1]
@@ -113,7 +113,23 @@ class CompilationEngine
     when "keyword", "symbol", "identifier", "stringConstant", "integerConstant"
       out_side_tag_name = tree[0][0]
       val = tree[0][1]
-      out "<#{out_side_tag_name}> #{val} </#{out_side_tag_name}>"
+      if tree[0][0] == "identifier"
+        kind = @sym_table.kind_of(val)
+        type = @sym_table.type_of(val)
+        index = @sym_table.index_of(val)
+        next_token = tree&.at(1)&.at(1)
+        if kind == "NONE"
+          if !next_token.nil? && ["(", "["].include?(next_token)
+            format_id_tag(out_side_tag_name, val, format_sym("FUNCTION", "USED", kind.upcase, index))
+          else
+            format_id_tag(out_side_tag_name, val, format_sym("CLASS", "USED", kind.upcase, index))
+          end
+        else
+          format_id_tag(out_side_tag_name, val, format_sym("CLASS", "USED", kind.upcase, index))
+        end
+      else
+        out "<#{out_side_tag_name}> #{val} </#{out_side_tag_name}>"
+      end
       tree_2_xml(tree.slice(1..-1))
     else
       tree_2_xml(tree[0][1])
@@ -160,6 +176,7 @@ class CompilationEngine
     token = @t.current_token
     # out("<#{token_type}> #{token} </#{token_type}>")
     @current_node << [token_type, token]
+    [token_type, token]
   end
 
   def expect_keyword(keywords, with_advance: true)
@@ -231,7 +248,7 @@ class CompilationEngine
     @indent_level += 1
 
     expect_keyword(["class"], with_advance: false)
-    expect_identifier
+    _, @class_name = expect_identifier
     expect_symbol(["{"])
 
     @t.advance

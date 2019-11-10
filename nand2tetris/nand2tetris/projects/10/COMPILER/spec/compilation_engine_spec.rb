@@ -2,7 +2,7 @@ RSpec.describe CompilationEngine do
   let(:contents) { 
     <<~"EOS"
 class Main {
-  static boolean test;    // Added for testing -- there is no static keyword
+  static boolean example;    // Added for testing -- there is no static keyword
   field int x, y; 
 
   function void main() {
@@ -111,12 +111,12 @@ class Square {
       expected_result = <<~"EOS"
 <class>
   <keyword> class </keyword>
-  <identifier> Main </identifier>
+  <identifier> Main CLASS - USED - NONE -  </identifier>
   <symbol> { </symbol>
   <classVarDec>
     <keyword> static </keyword>
     <keyword> boolean </keyword>
-    <identifier> test STATIC - DEFINED - STATIC - 0 </identifier>
+    <identifier> example STATIC - DEFINED - STATIC - 0 </identifier>
     <symbol> ; </symbol>
   </classVarDec>
   <classVarDec>
@@ -124,13 +124,13 @@ class Square {
     <keyword> int </keyword>
     <identifier> x FIELD - DEFINED - FIELD - 0 </identifier>
     <symbol> , </symbol>
-    <identifier> y FIELD - DEFINED - FIELD - 0 </identifier>
+    <identifier> y FIELD - DEFINED - FIELD - 1 </identifier>
     <symbol> ; </symbol>
   </classVarDec>
   <subroutineDec>
     <keyword> function </keyword>
     <keyword> void </keyword>
-    <identifier> main </identifier>
+    <identifier> main FUNCTION - USED - NONE -  </identifier>
     <symbol> ( </symbol>
     <parameterList>
     </parameterList>
@@ -139,20 +139,20 @@ class Square {
       <symbol> { </symbol>
       <varDec>
         <keyword> var </keyword>
-        <identifier> SquareGame VAR - DEFINED - VAR - 0 </identifier>
+        <identifier> SquareGame CLASS - USED - NONE -  </identifier>
         <identifier> game VAR - DEFINED - VAR - 0 </identifier>
         <symbol> ; </symbol>
       </varDec>
       <statements>
         <letStatement>
           <keyword> let </keyword>
-          <identifier> game </identifier>
+          <identifier> game CLASS - USED - VAR - 0 </identifier>
           <symbol> = </symbol>
           <expression>
             <term>
-              <identifier> SquareGame </identifier>
+              <identifier> SquareGame CLASS - USED - NONE -  </identifier>
               <symbol> . </symbol>
-              <identifier> new </identifier>
+              <identifier> new FUNCTION - USED - NONE -  </identifier>
               <symbol> ( </symbol>
               <expressionList>
               </expressionList>
@@ -163,9 +163,9 @@ class Square {
         </letStatement>
         <doStatement>
           <keyword> do </keyword>
-          <identifier> game </identifier>
+          <identifier> game CLASS - USED - VAR - 0 </identifier>
           <symbol> . </symbol>
-          <identifier> run </identifier>
+          <identifier> run FUNCTION - USED - NONE -  </identifier>
           <symbol> ( </symbol>
           <expressionList>
           </expressionList>
@@ -174,9 +174,9 @@ class Square {
         </doStatement>
         <doStatement>
           <keyword> do </keyword>
-          <identifier> game </identifier>
+          <identifier> game CLASS - USED - VAR - 0 </identifier>
           <symbol> . </symbol>
-          <identifier> dispose </identifier>
+          <identifier> dispose FUNCTION - USED - NONE -  </identifier>
           <symbol> ( </symbol>
           <expressionList>
           </expressionList>
@@ -194,14 +194,14 @@ class Square {
   <subroutineDec>
     <keyword> function </keyword>
     <keyword> void </keyword>
-    <identifier> test </identifier>
+    <identifier> test FUNCTION - USED - NONE -  </identifier>
     <symbol> ( </symbol>
     <parameterList>
       <keyword> int </keyword>
       <identifier> Ax ARG - DEFINED - ARG - 0 </identifier>
       <symbol> , </symbol>
       <keyword> int </keyword>
-      <identifier> Ay ARG - DEFINED - ARG - 0 </identifier>
+      <identifier> Ay ARG - DEFINED - ARG - 1 </identifier>
     </parameterList>
     <symbol> ) </symbol>
     <subroutineBody>
@@ -211,19 +211,19 @@ class Square {
         <keyword> int </keyword>
         <identifier> i VAR - DEFINED - VAR - 0 </identifier>
         <symbol> , </symbol>
-        <identifier> j VAR - DEFINED - VAR - 0 </identifier>
+        <identifier> j VAR - DEFINED - VAR - 1 </identifier>
         <symbol> ; </symbol>
       </varDec>
       <varDec>
         <keyword> var </keyword>
-        <identifier> String VAR - DEFINED - VAR - 0 </identifier>
-        <identifier> s VAR - DEFINED - VAR - 0 </identifier>
+        <identifier> String CLASS - USED - NONE -  </identifier>
+        <identifier> s VAR - DEFINED - VAR - 2 </identifier>
         <symbol> ; </symbol>
       </varDec>
       <varDec>
         <keyword> var </keyword>
-        <identifier> Array VAR - DEFINED - VAR - 0 </identifier>
-        <identifier> a VAR - DEFINED - VAR - 0 </identifier>
+        <identifier> Array CLASS - USED - NONE -  </identifier>
+        <identifier> a VAR - DEFINED - VAR - 3 </identifier>
         <symbol> ; </symbol>
       </varDec>
       <statements>
@@ -240,7 +240,7 @@ class Square {
           <statements>
             <letStatement>
               <keyword> let </keyword>
-              <identifier> s </identifier>
+              <identifier> s CLASS - USED - VAR - 2 </identifier>
               <symbol> = </symbol>
               <expression>
                 <term>
@@ -251,7 +251,7 @@ class Square {
             </letStatement>
             <letStatement>
               <keyword> let </keyword>
-              <identifier> s </identifier>
+              <identifier> s CLASS - USED - VAR - 2 </identifier>
               <symbol> = </symbol>
               <expression>
                 <term>
@@ -262,7 +262,7 @@ class Square {
             </letStatement>
             <letStatement>
               <keyword> let </keyword>
-              <identifier> a </identifier>
+              <identifier> a CLASS - USED - VAR - 3 </identifier>
               <symbol> [ </symbol>
               <expression>
                 <term>
@@ -273,7 +273,7 @@ class Square {
               <symbol> = </symbol>
               <expression>
                 <term>
-                  <identifier> a </identifier>
+                  <identifier> a CLASS - USED - VAR - 3 </identifier>
                   <symbol> [ </symbol>
                   <expression>
                     <term>
@@ -292,11 +292,11 @@ class Square {
           <statements>
             <letStatement>
               <keyword> let </keyword>
-              <identifier> i </identifier>
+              <identifier> i CLASS - USED - VAR - 0 </identifier>
               <symbol> = </symbol>
               <expression>
                 <term>
-                  <identifier> i </identifier>
+                  <identifier> i CLASS - USED - VAR - 0 </identifier>
                 </term>
                 <symbol> * </symbol>
                 <term>
@@ -305,7 +305,7 @@ class Square {
                     <term>
                       <symbol> - </symbol>
                       <term>
-                        <identifier> j </identifier>
+                        <identifier> j CLASS - USED - VAR - 1 </identifier>
                       </term>
                     </term>
                   </expression>
@@ -316,11 +316,11 @@ class Square {
             </letStatement>
             <letStatement>
               <keyword> let </keyword>
-              <identifier> j </identifier>
+              <identifier> j CLASS - USED - VAR - 1 </identifier>
               <symbol> = </symbol>
               <expression>
                 <term>
-                  <identifier> j </identifier>
+                  <identifier> j CLASS - USED - VAR - 1 </identifier>
                 </term>
                 <symbol> / </symbol>
                 <term>
@@ -340,15 +340,15 @@ class Square {
             </letStatement>
             <letStatement>
               <keyword> let </keyword>
-              <identifier> i </identifier>
+              <identifier> i CLASS - USED - VAR - 0 </identifier>
               <symbol> = </symbol>
               <expression>
                 <term>
-                  <identifier> i </identifier>
+                  <identifier> i CLASS - USED - VAR - 0 </identifier>
                 </term>
                 <symbol> | </symbol>
                 <term>
-                  <identifier> j </identifier>
+                  <identifier> j CLASS - USED - VAR - 1 </identifier>
                 </term>
               </expression>
               <symbol> ; </symbol>
