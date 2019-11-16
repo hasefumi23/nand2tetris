@@ -128,7 +128,7 @@ class CompilationEngine
       statements = keywords[2]
       tree_2_vm([statements])
 
-      expression_count = expression_list_ary.size - 1
+      expression_count = expression_list_ary[1].count { |ary| ary[0] == "expression" }
       @w.write_call("#{obj_name}.#{func_name}", expression_count)
       # tree_2_vm(keywords[6..-1])
     when "expressionList"
@@ -145,7 +145,6 @@ class CompilationEngine
         op_ary = exp[0]
         term_ary = exp[1]
         tree_2_vm([term_ary])
-        # binding.pry
         op = op_ary[1]
         if op == "*"
           puts("call Math.multiply 2")
@@ -157,15 +156,48 @@ class CompilationEngine
       terms = tree[0][1]
       first_term_type = terms[0][0]
       first_term_val = terms[0][1]
-      if %w[integerConstant stringConstant identifier].include?(first_term_type)
+      second_term_type = terms&.at(1)&.at(0)
+      second_term_val = terms&.at(1)&.at(1)
+      if first_term_type == "identifier" && second_term_val == "."
+        # Memory.peek(var)のような関数呼び出し
+        expression_list_ary = terms[4]
+        tree_2_vm([expression_list_ary])
+        obj_name, func_name = first_term_val, terms[2][1]
+        expression_count = expression_list_ary.size - 1
+        @w.write_call("#{obj_name}.#{func_name}", expression_count)
+      elsif first_term_type == "symbol" && first_term_val == "-"
+        tree_2_vm([terms[1]])
+        @w.write_arithmetic("NEG")
+      elsif %w[integerConstant stringConstant].include?(first_term_type)
         val = terms[0][1]
         @w.write_push("CONST", val)
+      elsif first_term_type == "identifier"
+        var_name = terms[0][1]
+        segment = case @sym_table.kind_of(var_name)
+        when "VAR" then "LOCAL"
+        else "NONE-KIND"
+        end
+        var_index = @sym_table.index_of(var_name)
+        @w.write_push(segment, var_index)
       elsif first_term_type == "symbol" && first_term_val == "("
         exp = terms[1]
         tree_2_vm([exp])
       end
     when "returnStatement"
       @w.write_return
+    when "letStatement"
+      children = tree[0][1]
+      var_name = children[1][1]
+      exp = children[3]
+      tree_2_vm([exp])
+
+      segment = case @sym_table.kind_of(var_name)
+      when "VAR" then "LOCAL"
+      else "NONE-KIND"
+      end
+
+      var_index = @sym_table.index_of(var_name)
+      @w.write_pop(segment, var_index)
     when "keyword", "symbol", "identifier", "stringConstant", "integerConstant"
       out_side_tag_name = node_name
       val = tree[0][1]
