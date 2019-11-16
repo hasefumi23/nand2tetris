@@ -1,8 +1,21 @@
 require 'pry'
 
 require_relative "symbol_table"
+require_relative "vm_writer"
 
 class CompilationEngine
+  OPERATOR_HASH = {
+    "+" => "ADD",
+    "-" => "SUB",
+    "=" => "EQ",
+    ">" => "GT",
+    "<" => "LT",
+    "&" => "AND",
+    "|" => "OR",
+    "~" => "NOT",
+    "neg" => "NEG",
+  }
+
   attr_reader :tree_stack, :current_node
 
   class NoExpectedKeywordError < StandardError; end
@@ -22,14 +35,166 @@ class CompilationEngine
     @tree_stack = []
     @current_node = nil
     @sym_table = SymbolTable.new
+    @w = VMWriter.new
     @class_name = nil
     @t.advance
     @t.advance
   end
 
   def out(str)
+    return unless ENV.fetch("DEBUG_MODE", false) == "true"
     print "#{' ' * (2 * @indent_level)}"
     puts(str)
+  end
+
+  def to_vm
+    tree_2_vm(@current_node)
+  end
+
+  def tree_2_vm(tree)
+    return if tree&.empty?
+
+    node_name = tree[0][0]
+    if node_name == "subroutineDec"
+      @sym_table.start_subroutine
+      @sym_table.define("this", @class_name, "ARG")
+    end
+
+    unless ["keyword", "symbol", "identifier", "stringConstant", "integerConstant"].include?(node_name)
+      out "<#{node_name}>"
+      @indent_level += 1
+    end
+
+    case node_name
+    when "varDec"
+      children = tree[0][1]
+      type = children[1][1]
+      children.each_with_index { |el, i|
+        tag_name = el[0]
+        var_name = el[1]
+        if i != 0 && i.even?
+          sym = @sym_table.define(var_name, type, "VAR")
+          format_id_tag(tag_name, var_name, format_sym("VAR", "DEFINED", "VAR", sym.index))
+        else
+          tree_2_vm([el])
+        end
+      }
+    when "parameterList"
+      unless tree[0][1]&.empty?
+        children = tree[0][1]
+        children.each_with_index { |el, i|
+          type = children[i - 1][1]
+          tag_name = el[0]
+          var_name = el[1]
+          if i % 3 == 1
+            sym = @sym_table.define(var_name, type, "ARG")
+            format_id_tag(tag_name, var_name, format_sym("ARG", "DEFINED", "ARG", sym.index))
+          else
+            tree_2_vm([el])
+          end
+        }
+      end
+    when "classVarDec"
+      keywords = tree[0][1]
+      static_or_field = keywords[0][1]
+      type = keywords[1][1]
+      keywords.each { |k| 
+        tag_name = k[0]
+        var_name = k[1]
+        if tag_name == "identifier"
+          sym = @sym_table.define(var_name, type, static_or_field.upcase)
+          format_id_tag(tag_name, var_name, format_sym(static_or_field.upcase, "DEFINED", static_or_field.upcase, sym.index))
+        else
+          out "<#{tag_name}> #{var_name} </#{tag_name}>"
+        end
+      }
+    when "subroutineDec"
+      keywords = tree[0][1]
+      func_keyword = keywords[0][1]
+      return_type = keywords[1][1]
+      func_name = keywords[2][1]
+      parameter_list_ary = keywords[4]
+      # 引数を@sym_tableに登録するために出力より先に tree_2_vm に渡しておく
+      tree_2_vm([parameter_list_ary]) # parameterList
+      arg_count = @sym_table.var_count("ARG") - 1
+      @w.write_function("#{@class_name}.#{func_name}", arg_count)
+      tree_2_vm(keywords[6..-1])
+    when "doStatement"
+      keywords = tree[0][1]
+      obj_name = keywords[1][1]
+      func_name = keywords[3][1]
+      expression_list_ary = keywords[5]
+      tree_2_vm([expression_list_ary])
+      statements = keywords[2]
+      tree_2_vm([statements])
+
+      expression_count = expression_list_ary.size - 1
+      @w.write_call("#{obj_name}.#{func_name}", expression_count)
+      # tree_2_vm(keywords[6..-1])
+    when "expressionList"
+      expression_list = tree[0][1]
+      expression_list.each_slice(2).map(&:first).each { |expression_ary|
+        tree_2_vm([expression_ary])
+      }
+      # tree_2_vm([expression_list_ary])
+    when "expression"
+      expression = tree[0][1]
+      first_term = expression.slice!(0)
+      tree_2_vm([first_term])
+      expression.each_slice(2).each do |exp|
+        op_ary = exp[0]
+        term_ary = exp[1]
+        tree_2_vm([term_ary])
+        # binding.pry
+        op = op_ary[1]
+        if op == "*"
+          puts("call Math.multiply 2")
+        else
+          @w.write_arithmetic(OPERATOR_HASH[op])
+        end
+      end
+    when "term"
+      terms = tree[0][1]
+      first_term_type = terms[0][0]
+      first_term_val = terms[0][1]
+      if %w[integerConstant stringConstant identifier].include?(first_term_type)
+        val = terms[0][1]
+        @w.write_push("CONST", val)
+      elsif first_term_type == "symbol" && first_term_val == "("
+        exp = terms[1]
+        tree_2_vm([exp])
+      end
+    when "returnStatement"
+      @w.write_return
+    when "keyword", "symbol", "identifier", "stringConstant", "integerConstant"
+      out_side_tag_name = node_name
+      val = tree[0][1]
+      if node_name == "identifier"
+        sym = @sym_table.sym_of(val)
+        kind, type, index = sym&.kind || "NONE", sym&.type, sym&.index
+        next_token = tree&.at(1)&.at(1)
+        if kind == "NONE"
+          if !next_token.nil? && ["(", "["].include?(next_token)
+            format_id_tag(out_side_tag_name, val, format_sym("FUNCTION", "USED", kind&.upcase, index))
+          else
+            format_id_tag(out_side_tag_name, val, format_sym("CLASS", "USED", kind&.upcase, index))
+          end
+        else
+          format_id_tag(out_side_tag_name, val, format_sym("CLASS", "USED", kind&.upcase, index))
+        end
+      else
+        out "<#{out_side_tag_name}> #{val} </#{out_side_tag_name}>"
+      end
+      tree_2_vm(tree.slice(1..-1))
+    else
+      tree_2_vm(tree[0][1])
+    end
+
+    unless ["keyword", "symbol", "identifier", "stringConstant", "integerConstant"].include?(node_name)
+      @indent_level -= 1
+      out "</#{node_name}>"
+      tree_2_vm(tree[1..-1])
+    end
   end
 
   def to_xml
