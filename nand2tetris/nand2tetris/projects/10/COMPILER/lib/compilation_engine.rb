@@ -8,8 +8,8 @@ class CompilationEngine
     "+" => "ADD",
     "-" => "SUB",
     "=" => "EQ",
-    ">" => "GT",
-    "<" => "LT",
+    "&gt;" => "GT",
+    "&lt;" => "LT",
     "&" => "AND",
     "|" => "OR",
     "~" => "NOT",
@@ -60,7 +60,8 @@ class CompilationEngine
       # ifやwhileをコンパイルするときに使うlabel
       # はユニークである必要があるために関数名を使うのでインスタンス変数として持つ
       @func_name = keywords[2][1]
-      @label_count = 0
+      @if_label_count = 0
+      @while_label_count = 0
       @sym_table.start_subroutine
       @sym_table.define("this", @class_name, "ARG")
     end
@@ -151,7 +152,7 @@ class CompilationEngine
         tree_2_vm([term_ary])
         op = op_ary[1]
         if op == "*"
-          puts("call Math.multiply 2")
+          @w.write_call("Math.multiply", "2")
         else
           @w.write_arithmetic(OPERATOR_HASH[op])
         end
@@ -213,7 +214,7 @@ class CompilationEngine
       exp = children[2]
       tree_2_vm([exp])
 
-      base_label_count = @label_count
+      base_label_count = @if_label_count
       @w.write_if("#{@func_name}-IF-#{base_label_count}")
       statements = children[5]
       tree_2_vm([statements])
@@ -225,7 +226,28 @@ class CompilationEngine
         tree_2_vm([else_statements])
       end
       @w.write_label("#{@func_name}-IF-#{base_label_count + 1}")
-      @label_count += 1
+      @if_label_count += 2
+    when "whileStatement"
+      # FIXME: whileStatementの実装から
+      children = tree[0][1]
+      var_name = children[1][1]
+      base_label_count = @if_label_count
+      @w.write_label("#{@func_name}-WHILE-#{base_label_count}")
+      exp = children[2]
+      tree_2_vm([exp])
+      @w.write_if("#{@func_name}-WHILE-#{base_label_count + 1}")
+      # TODO: statements
+      # binding.pry
+      statements = children[5]
+      tree_2_vm([statements])
+
+      @w.write_goto("#{@func_name}-WHILE-#{base_label_count}")
+      @w.write_label("#{@func_name}-WHILE-#{base_label_count + 1}")
+    when "statements"
+      children = tree[0][1]
+      children.each { |child|
+        tree_2_vm([child])
+      }
     when "keyword", "symbol", "identifier", "stringConstant", "integerConstant"
       out_side_tag_name = node_name
       val = tree[0][1]

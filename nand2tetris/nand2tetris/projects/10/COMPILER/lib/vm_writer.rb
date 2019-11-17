@@ -8,6 +8,11 @@ class VMWriter
     "hello"
   end
 
+  def out(str, with_indentation: true)
+    print "  " if with_indentation
+    puts str
+  end
+
   def write_pop_or_push(pop_or_push, segment, index)
     seg = case segment
     when "ARG" then "argument"
@@ -21,7 +26,7 @@ class VMWriter
     else raise StandardError.new("Unexpected segment is given: #{segment}")
     end
 
-    puts "#{pop_or_push} #{seg} #{index}"
+    out("#{pop_or_push} #{seg} #{index}")
   end
 
   # pushコマンドを書く
@@ -47,7 +52,7 @@ class VMWriter
   # Args:
   #   command (ADD、SUB、 NEG、EQ、GT、LT、 AND、OR、NOT)
   def write_arithmetic(command)
-    puts command.downcase
+    out(command.downcase)
   end
 
   # labelコマンドを書く
@@ -55,7 +60,7 @@ class VMWriter
   # Args:
   #   label（文字列）
   def write_label(label)
-    puts("label #{label}")
+    out("label #{label}", with_indentation: false)
   end
 
   # gotoコマンドを書く
@@ -63,7 +68,7 @@ class VMWriter
   # Args:
   #   label（文字列）
   def write_goto(label)
-    puts("goto #{label}")
+    out("goto #{label}")
   end
 
   # ifコマンドを書く
@@ -71,7 +76,7 @@ class VMWriter
   # Args:
   #   label（文字列）
   def write_if(label)
-    puts("if-goto #{label}")
+    out("if-goto #{label}")
   end
 
   # callコマンドを書く
@@ -80,7 +85,7 @@ class VMWriter
   #   name（文字列）
   #   nArgs（整数）
   def write_call(name, n_args)
-    puts("call #{name} #{n_args}")
+    out("call #{name} #{n_args}")
   end
 
   # functionコマンドを書く
@@ -89,12 +94,12 @@ class VMWriter
   #   name（文字列）
   #   nArgs（整数）
   def write_function(name, n_args)
-    puts("function #{name} #{n_args}")
+    out("function #{name} #{n_args}", with_indentation: false)
   end
 
   # returnコマンドを書く
   def write_return
-    puts("return")
+    out("return")
   end
 
   # 出力ファイルを閉じる

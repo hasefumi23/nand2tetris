@@ -22,13 +22,13 @@ EOS
     it 'return output VM code' do
       expected_result = <<~"EOS"
 function Main.main 0
-push constant 1
-push constant 2
-push constant 3
-call Math.multiply 2
-add
-call Output.printInt 1
-return
+  push constant 1
+  push constant 2
+  push constant 3
+  call Math.multiply 2
+  add
+  call Output.printInt 1
+  return
       EOS
       engine.compile_class
       expect { engine.to_vm }.to output(expected_result).to_stdout
@@ -57,17 +57,17 @@ EOS
     it 'return output VM code' do
       expected_result = <<~"EOS"
 function Main.main 0
-push constant 8001
-push constant 16
-push constant 1
-neg
-call Main.fillMemory 3
-push constant 8000
-call Memory.peek 1
-pop local 0
-push local 0
-call Main.convert 1
-return
+  push constant 8001
+  push constant 16
+  push constant 1
+  neg
+  call Main.fillMemory 3
+  push constant 8000
+  call Memory.peek 1
+  pop local 0
+  push local 0
+  call Main.convert 1
+  return
       EOS
       engine.compile_class
       expect { engine.to_vm }.to output(expected_result).to_stdout
@@ -93,19 +93,63 @@ EOS
     it 'return output VM code' do
       expected_result = <<~"EOS"
 function Main.nextMask 1
-push argument 1
-push constant 0
-eq
-if-goto nextMask-IF-0
-push constant 1
-return
-goto nextMask-IF-1
+  push argument 1
+  push constant 0
+  eq
+  if-goto nextMask-IF-0
+  push constant 1
+  return
+  goto nextMask-IF-1
 label nextMask-IF-0
-push argument 1
-push constant 2
-call Math.multiply 2
-return
+  push argument 1
+  push constant 2
+  call Math.multiply 2
+  return
 label nextMask-IF-1
+      EOS
+      engine.compile_class
+      expect { engine.to_vm }.to output(expected_result).to_stdout
+    end
+  end
+
+  describe '#compile_class fillMemory() of ConvertToBin.jack' do
+  let(:contents) { 
+    <<~"EOS"
+class Main {
+    function void fillMemory(int startAddress, int length, int value) {
+        while (length > 0) {
+            do Memory.poke(startAddress, value);
+            let length = length - 1;
+            let startAddress = startAddress + 1;
+        }
+        return;
+    }
+}
+EOS
+  }
+
+    it 'return output VM code' do
+      expected_result = <<~"EOS"
+function Main.fillMemory 3
+label fillMemory-WHILE-0
+  push argument 2
+  push constant 0
+  gt
+  if-goto fillMemory-WHILE-1
+  push argument 1
+  push argument 3
+  call Memory.poke 2
+  push argument 2
+  push constant 1
+  sub
+  pop argument 2
+  push argument 1
+  push constant 1
+  add
+  pop argument 1
+  goto fillMemory-WHILE-0
+label fillMemory-WHILE-1
+  return
       EOS
       engine.compile_class
       expect { engine.to_vm }.to output(expected_result).to_stdout
