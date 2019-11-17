@@ -59,11 +59,15 @@ class CompilationEngine
       keywords = tree[0][1]
       # ifやwhileをコンパイルするときに使うlabel
       # はユニークである必要があるために関数名を使うのでインスタンス変数として持つ
+      @func_type = keywords[0][1]
+      @return_type = keywords[1][1]
       @func_name = keywords[2][1]
       @if_label_count = 0
       @while_label_count = 0
       @sym_table.start_subroutine
-      @sym_table.define("this", @class_name, "ARG")
+      if @func_type == "method"
+        @sym_table.define("this", @class_name, "ARG")
+      end
     end
 
     unless ["keyword", "symbol", "identifier", "stringConstant", "integerConstant"].include?(node_name)
@@ -140,6 +144,7 @@ class CompilationEngine
 
       expression_count = expression_list_ary[1].count { |ary| ary[0] == "expression" }
       @w.write_call("#{obj_name}.#{func_name}", expression_count)
+      @w.write_pop("TEMP", 0)
       # tree_2_vm(keywords[6..-1])
     when "expressionList"
       expression_list = tree[0][1]
@@ -207,6 +212,9 @@ class CompilationEngine
       children = tree[0][1]
       if children[1][0] == "expression"
         tree_2_vm([children[1]])
+      elsif @return_type == "void"
+        # Jackの仕様上サブルーチンの返り値がvoidの場合0を返す
+        @w.write_push("CONST", 0)
       end
       @w.write_return
     when "letStatement"
@@ -228,20 +236,23 @@ class CompilationEngine
       var_name = children[1][1]
       exp = children[2]
       tree_2_vm([exp])
+      @w.write_arithmetic("NOT")
 
       base_label_count = @if_label_count
+      @if_label_count += 2
       @w.write_if("#{@func_name}-IF-#{base_label_count}")
       statements = children[5]
       tree_2_vm([statements])
-      @w.write_goto("#{@func_name}-IF-#{base_label_count + 1}")
-      @w.write_label("#{@func_name}-IF-#{base_label_count}")
       if children[7] != nil && children[7][1] = "else"
+        @w.write_goto("#{@func_name}-IF-#{base_label_count + 1}")
+        @w.write_label("#{@func_name}-IF-#{base_label_count}")
         # else句がある場合のみelse句の中のstatemntsを評価する
         else_statements = children[9]
         tree_2_vm([else_statements])
+        @w.write_label("#{@func_name}-IF-#{base_label_count + 1}")
+      else
+        @w.write_label("#{@func_name}-IF-#{base_label_count}")
       end
-      @w.write_label("#{@func_name}-IF-#{base_label_count + 1}")
-      @if_label_count += 2
     when "whileStatement"
       children = tree[0][1]
       var_name = children[1][1]
@@ -249,6 +260,7 @@ class CompilationEngine
       @w.write_label("#{@func_name}-WHILE-#{base_label_count}")
       exp = children[2]
       tree_2_vm([exp])
+      @w.write_arithmetic("NOT")
       @w.write_if("#{@func_name}-WHILE-#{base_label_count + 1}")
       statements = children[5]
       tree_2_vm([statements])

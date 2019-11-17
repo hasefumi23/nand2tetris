@@ -28,6 +28,8 @@ function Main.main 0
   call Math.multiply 2
   add
   call Output.printInt 1
+  pop temp 0
+  push constant 0
   return
       EOS
       engine.compile_class
@@ -62,11 +64,14 @@ function Main.main 1
   push constant 1
   neg
   call Main.fillMemory 3
+  pop temp 0
   push constant 8000
   call Memory.peek 1
   pop local 0
   push local 0
   call Main.convert 1
+  pop temp 0
+  push constant 0
   return
       EOS
       engine.compile_class
@@ -93,15 +98,16 @@ EOS
     it 'return output VM code' do
       expected_result = <<~"EOS"
 function Main.nextMask 0
-  push argument 1
+  push argument 0
   push constant 0
   eq
+  not
   if-goto nextMask-IF-0
   push constant 1
   return
   goto nextMask-IF-1
 label nextMask-IF-0
-  push argument 1
+  push argument 0
   push constant 2
   call Math.multiply 2
   return
@@ -132,23 +138,26 @@ EOS
       expected_result = <<~"EOS"
 function Main.fillMemory 0
 label fillMemory-WHILE-0
-  push argument 2
+  push argument 1
   push constant 0
   gt
+  not
   if-goto fillMemory-WHILE-1
-  push argument 1
-  push argument 3
-  call Memory.poke 2
+  push argument 0
   push argument 2
+  call Memory.poke 2
+  pop temp 0
+  push argument 1
   push constant 1
   sub
-  pop argument 2
-  push argument 1
+  pop argument 1
+  push argument 0
   push constant 1
   add
-  pop argument 1
+  pop argument 0
   goto fillMemory-WHILE-0
 label fillMemory-WHILE-1
+  push constant 0
   return
       EOS
       engine.compile_class
@@ -188,29 +197,60 @@ class Main {
 EOS
   }
 
-    xit 'return output VM code' do
+    it 'return output VM code' do
       expected_result = <<~"EOS"
-function Main.convert 1
+function Main.convert 3
   push constant 1
   neg
   pop local 2
-
-  push constant 0
-  gt
-  if-goto fillMemory-WHILE-1
-  push argument 1
-  push argument 3
-  call Memory.poke 2
-  push argument 2
-  push constant 1
-  sub
-  pop argument 2
-  push argument 1
+label convert-WHILE-0
+  push local 2
+  not
+  if-goto convert-WHILE-1
+  push local 1
   push constant 1
   add
-  pop argument 1
-  goto fillMemory-WHILE-0
-label fillMemory-WHILE-1
+  pop local 1
+  push local 0
+  call Main.nextMask 1
+  pop local 0
+  push local 1
+  push constant 16
+  gt
+  not
+  not
+  if-goto convert-IF-0
+  push argument 0
+  push local 0
+  and
+  push constant 0
+  eq
+  not
+  not
+  if-goto convert-IF-2
+  push constant 8000
+  push local 1
+  add
+  push constant 1
+  call Memory.poke 2
+  pop temp 0
+  goto convert-IF-3
+label convert-IF-2
+  push constant 8000
+  push local 1
+  add
+  push constant 0
+  call Memory.poke 2
+  pop temp 0
+label convert-IF-3
+  goto convert-IF-1
+label convert-IF-0
+  push constant 0
+  pop local 2
+label convert-IF-1
+  goto convert-WHILE-0
+label convert-WHILE-1
+  push constant 0
   return
       EOS
       engine.compile_class
