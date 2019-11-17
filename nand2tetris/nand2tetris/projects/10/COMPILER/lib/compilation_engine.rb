@@ -56,6 +56,11 @@ class CompilationEngine
 
     node_name = tree[0][0]
     if node_name == "subroutineDec"
+      keywords = tree[0][1]
+      # ifやwhileをコンパイルするときに使うlabel
+      # はユニークである必要があるために関数名を使うのでインスタンス変数として持つ
+      @func_name = keywords[2][1]
+      @label_count = 0
       @sym_table.start_subroutine
       @sym_table.define("this", @class_name, "ARG")
     end
@@ -110,9 +115,8 @@ class CompilationEngine
       }
     when "subroutineDec"
       keywords = tree[0][1]
-      func_keyword = keywords[0][1]
-      return_type = keywords[1][1]
       func_name = keywords[2][1]
+      @func_name = func_name
       parameter_list_ary = keywords[4]
       # 引数を@sym_tableに登録するために出力より先に tree_2_vm に渡しておく
       tree_2_vm([parameter_list_ary]) # parameterList
@@ -156,7 +160,6 @@ class CompilationEngine
       terms = tree[0][1]
       first_term_type = terms[0][0]
       first_term_val = terms[0][1]
-      second_term_type = terms&.at(1)&.at(0)
       second_term_val = terms&.at(1)&.at(1)
       if first_term_type == "identifier" && second_term_val == "."
         # Memory.peek(var)のような関数呼び出し
@@ -175,6 +178,7 @@ class CompilationEngine
         var_name = terms[0][1]
         segment = case @sym_table.kind_of(var_name)
         when "VAR" then "LOCAL"
+        when "ARG" then "ARG"
         else "NONE-KIND"
         end
         var_index = @sym_table.index_of(var_name)
@@ -184,6 +188,10 @@ class CompilationEngine
         tree_2_vm([exp])
       end
     when "returnStatement"
+      children = tree[0][1]
+      if children[1][0] == "expression"
+        tree_2_vm([children[1]])
+      end
       @w.write_return
     when "letStatement"
       children = tree[0][1]
@@ -193,11 +201,31 @@ class CompilationEngine
 
       segment = case @sym_table.kind_of(var_name)
       when "VAR" then "LOCAL"
+      when "ARG" then "ARG"
       else "NONE-KIND"
       end
 
       var_index = @sym_table.index_of(var_name)
       @w.write_pop(segment, var_index)
+    when "ifStatement"
+      children = tree[0][1]
+      var_name = children[1][1]
+      exp = children[2]
+      tree_2_vm([exp])
+
+      base_label_count = @label_count
+      @w.write_if("#{@func_name}-IF-#{base_label_count}")
+      statements = children[5]
+      tree_2_vm([statements])
+      @w.write_goto("#{@func_name}-IF-#{base_label_count + 1}")
+      @w.write_label("#{@func_name}-IF-#{base_label_count}")
+      if children[7] != nil && children[7][1] = "else"
+        # else句がある場合のみelse句の中のstatemntsを評価する
+        else_statements = children[9]
+        tree_2_vm([else_statements])
+      end
+      @w.write_label("#{@func_name}-IF-#{base_label_count + 1}")
+      @label_count += 1
     when "keyword", "symbol", "identifier", "stringConstant", "integerConstant"
       out_side_tag_name = node_name
       val = tree[0][1]

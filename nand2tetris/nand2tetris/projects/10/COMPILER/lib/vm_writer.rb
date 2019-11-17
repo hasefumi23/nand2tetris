@@ -18,7 +18,7 @@ class VMWriter
     when "TEMP" then "temp"
     when "THAT" then "that"
     when "THIS" then "this"
-    else raise StandardError.new("Unexpected segment is given")
+    else raise StandardError.new("Unexpected segment is given: #{segment}")
     end
 
     puts "#{pop_or_push} #{seg} #{index}"

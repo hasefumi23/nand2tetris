@@ -35,7 +35,7 @@ return
     end
   end
 
-  describe '#compile_class of ConvertToBin.jack' do
+  describe '#compile_class main() of ConvertToBin.jack' do
   let(:contents) { 
     <<~"EOS"
 class Main {
@@ -68,6 +68,44 @@ pop local 0
 push local 0
 call Main.convert 1
 return
+      EOS
+      engine.compile_class
+      expect { engine.to_vm }.to output(expected_result).to_stdout
+    end
+  end
+
+  describe '#compile_class nextMask() of ConvertToBin.jack' do
+  let(:contents) { 
+    <<~"EOS"
+class Main {
+    function int nextMask(int mask) {
+      if (mask = 0) {
+        return 1;
+      }
+      else {
+        return mask * 2;
+      }
+    }
+}
+EOS
+  }
+
+    it 'return output VM code' do
+      expected_result = <<~"EOS"
+function Main.nextMask 1
+push argument 1
+push constant 0
+eq
+if-goto nextMask-IF-0
+push constant 1
+return
+goto nextMask-IF-1
+label nextMask-IF-0
+push argument 1
+push constant 2
+call Math.multiply 2
+return
+label nextMask-IF-1
       EOS
       engine.compile_class
       expect { engine.to_vm }.to output(expected_result).to_stdout
