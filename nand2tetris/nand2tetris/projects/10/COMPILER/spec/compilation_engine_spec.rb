@@ -56,7 +56,7 @@ EOS
 
     it 'return output VM code' do
       expected_result = <<~"EOS"
-function Main.main 0
+function Main.main 1
   push constant 8001
   push constant 16
   push constant 1
@@ -92,7 +92,7 @@ EOS
 
     it 'return output VM code' do
       expected_result = <<~"EOS"
-function Main.nextMask 1
+function Main.nextMask 0
   push argument 1
   push constant 0
   eq
@@ -113,8 +113,8 @@ label nextMask-IF-1
   end
 
   describe '#compile_class fillMemory() of ConvertToBin.jack' do
-  let(:contents) { 
-    <<~"EOS"
+    let(:contents) { 
+      <<~"EOS"
 class Main {
     function void fillMemory(int startAddress, int length, int value) {
         while (length > 0) {
@@ -130,9 +130,71 @@ EOS
 
     it 'return output VM code' do
       expected_result = <<~"EOS"
-function Main.fillMemory 3
+function Main.fillMemory 0
 label fillMemory-WHILE-0
   push argument 2
+  push constant 0
+  gt
+  if-goto fillMemory-WHILE-1
+  push argument 1
+  push argument 3
+  call Memory.poke 2
+  push argument 2
+  push constant 1
+  sub
+  pop argument 2
+  push argument 1
+  push constant 1
+  add
+  pop argument 1
+  goto fillMemory-WHILE-0
+label fillMemory-WHILE-1
+  return
+      EOS
+      engine.compile_class
+      expect { engine.to_vm }.to output(expected_result).to_stdout
+    end
+  end
+
+  describe '#compile_class convert() of ConvertToBin.jack' do
+    let(:contents) { 
+      <<~"EOS"
+class Main {
+    function void convert(int value) {
+      var int mask, position;
+      var boolean loop;
+
+      let loop = true;
+      while (loop) {
+          let position = position + 1;
+          let mask = Main.nextMask(mask);
+
+          if (~(position > 16)) {
+
+              if (~((value & mask) = 0)) {
+                  do Memory.poke(8000 + position, 1);
+              }
+              else {
+                  do Memory.poke(8000 + position, 0);
+              }
+          }
+          else {
+              let loop = false;
+          }
+      }
+      return;
+    }
+}
+EOS
+  }
+
+    xit 'return output VM code' do
+      expected_result = <<~"EOS"
+function Main.convert 1
+  push constant 1
+  neg
+  pop local 2
+
   push constant 0
   gt
   if-goto fillMemory-WHILE-1

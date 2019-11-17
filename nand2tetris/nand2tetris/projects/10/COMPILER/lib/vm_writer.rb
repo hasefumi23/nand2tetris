@@ -92,7 +92,7 @@ class VMWriter
   #
   # Args:
   #   name（文字列）
-  #   nArgs（整数）
+  #   nArgs（整数）: 関数のローカル変数の数
   def write_function(name, n_args)
     out("function #{name} #{n_args}", with_indentation: false)
   end

@@ -1,7 +1,7 @@
 require_relative "sym"
 
 class SymbolTable
-  attr_reader :class_hash, :subroutine_hash
+  attr_reader :class_hash, :subroutine_hash, :past_subroutine_hashes
 
   # 空のシンボルテーブルを生成する
   def initialize
@@ -26,8 +26,9 @@ class SymbolTable
     when "STATIC", "FIELD" then @class_hash
     when "ARG", "VAR" then @subroutine_hash
     end
-    hash[name] = sym
-    sym
+    # 既に定義済みの場合でも再定義しようとする場合があるので、それを防ぐ
+    hash[name] = sym if hash[name].nil?
+    hash[name]
   end
 
   # 引数で与えられた属性について、それが現在のスコープで定義されている数を返す

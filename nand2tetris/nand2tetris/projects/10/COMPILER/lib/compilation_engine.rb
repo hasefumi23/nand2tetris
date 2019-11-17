@@ -10,7 +10,7 @@ class CompilationEngine
     "=" => "EQ",
     "&gt;" => "GT",
     "&lt;" => "LT",
-    "&" => "AND",
+    "&amp;" => "AND",
     "|" => "OR",
     "~" => "NOT",
     "neg" => "NEG",
@@ -121,8 +121,13 @@ class CompilationEngine
       parameter_list_ary = keywords[4]
       # 引数を@sym_tableに登録するために出力より先に tree_2_vm に渡しておく
       tree_2_vm([parameter_list_ary]) # parameterList
-      arg_count = @sym_table.var_count("ARG") - 1
-      @w.write_function("#{@class_name}.#{func_name}", arg_count)
+
+      keywords[6][1].select { |word| word[0] == "varDec" }.each { |word|
+        tree_2_vm([word])
+      }
+
+      var_count = @sym_table.var_count("VAR")
+      @w.write_function("#{@class_name}.#{func_name}", var_count)
       tree_2_vm(keywords[6..-1])
     when "doStatement"
       keywords = tree[0][1]
@@ -172,6 +177,16 @@ class CompilationEngine
       elsif first_term_type == "symbol" && first_term_val == "-"
         tree_2_vm([terms[1]])
         @w.write_arithmetic("NEG")
+      elsif first_term_type == "symbol" && first_term_val == "~"
+        tree_2_vm([terms[1]])
+        @w.write_arithmetic(OPERATOR_HASH["~"])
+      elsif first_term_type == "keyword" && %w[true false null].include?(first_term_val)
+        if first_term_val == "true"
+          @w.write_push("CONST", 1)
+          @w.write_arithmetic("NEG")
+        else
+          @w.write_push("CONST", 0)
+        end
       elsif %w[integerConstant stringConstant].include?(first_term_type)
         val = terms[0][1]
         @w.write_push("CONST", val)
@@ -228,7 +243,6 @@ class CompilationEngine
       @w.write_label("#{@func_name}-IF-#{base_label_count + 1}")
       @if_label_count += 2
     when "whileStatement"
-      # FIXME: whileStatementの実装から
       children = tree[0][1]
       var_name = children[1][1]
       base_label_count = @if_label_count
@@ -236,8 +250,6 @@ class CompilationEngine
       exp = children[2]
       tree_2_vm([exp])
       @w.write_if("#{@func_name}-WHILE-#{base_label_count + 1}")
-      # TODO: statements
-      # binding.pry
       statements = children[5]
       tree_2_vm([statements])
 
