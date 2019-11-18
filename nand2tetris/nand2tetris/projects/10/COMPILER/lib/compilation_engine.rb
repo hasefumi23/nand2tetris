@@ -49,6 +49,7 @@ class CompilationEngine
 
   def to_vm
     tree_2_vm(@current_node)
+    # pp @sym_table
   end
 
   def tree_2_vm(tree)
@@ -132,18 +133,51 @@ class CompilationEngine
 
       var_count = @sym_table.var_count("VAR")
       @w.write_function("#{@class_name}.#{func_name}", var_count)
+      if @func_type == "constructor"
+        field_count = @sym_table.var_count("FIELD")
+        @w.write_push("CONST", field_count)
+        @w.write_call("Memory.alloc", 1)
+        @w.write_pop("POINTER", 0)
+      end
       tree_2_vm(keywords[6..-1])
+    # when "subroutineBody"
+    #   if @func_type == "constructor"
+    #     field_count = @sym_table.var_count("FIELD")
+    #     @w.write_call("Memory.alloc", field_count)
+    #   end
+    #   keywords = tree[0][1]
+    #   binding.pry
+    #   tree_2_vm([keywords[1]])
     when "doStatement"
       keywords = tree[0][1]
-      obj_name = keywords[1][1]
-      func_name = keywords[3][1]
-      expression_list_ary = keywords[5]
-      tree_2_vm([expression_list_ary])
-      statements = keywords[2]
-      tree_2_vm([statements])
+      is_function_call = keywords[2][0] == "symbol" && keywords[2][1] == "."
+      if is_function_call
+        obj_name = keywords[1][1]
+        statements = keywords[2]
+        func_name = keywords[3][1]
+        expression_list_ary = keywords[5]
+      else
+        func_name = keywords[1][1]
+        expression_list_ary = keywords[3]
+      end
 
-      expression_count = expression_list_ary[1].count { |ary| ary[0] == "expression" }
-      @w.write_call("#{obj_name}.#{func_name}", expression_count)
+      tree_2_vm([expression_list_ary])
+      tree_2_vm([statements]) unless statements.nil?
+
+      expression_count  = if expression_list_ary[1].empty?
+        0
+      else
+        expression_list_ary[1].count { |ary| ary[0] == "expression" }
+      end
+
+      if is_function_call
+        clazz_name = @sym_table.type_of(obj_name)
+        instance_name = clazz_name.nil? ? obj_name : clazz_name
+        @w.write_call("#{instance_name}.#{func_name}", expression_count)
+      else
+        @w.write_push("POINTER", 0)
+        @w.write_call("#{@class_name}.#{func_name}", expression_count)
+      end
       @w.write_pop("TEMP", 0)
       # tree_2_vm(keywords[6..-1])
     when "expressionList"
@@ -200,6 +234,7 @@ class CompilationEngine
         segment = case @sym_table.kind_of(var_name)
         when "VAR" then "LOCAL"
         when "ARG" then "ARG"
+        when "FIELD" then "THIS"
         else "NONE-KIND"
         end
         var_index = @sym_table.index_of(var_name)
@@ -210,7 +245,10 @@ class CompilationEngine
       end
     when "returnStatement"
       children = tree[0][1]
-      if children[1][0] == "expression"
+      if @func_type == "constructor"
+        # field_count = @sym_table.var_count("FIELD")
+        # @w.write_call("Memory.alloc", field_count)
+      elsif children[1][0] == "expression"
         tree_2_vm([children[1]])
       elsif @return_type == "void"
         # Jackの仕様上サブルーチンの返り値がvoidの場合0を返す
@@ -220,16 +258,18 @@ class CompilationEngine
     when "letStatement"
       children = tree[0][1]
       var_name = children[1][1]
-      exp = children[3]
-      tree_2_vm([exp])
 
       segment = case @sym_table.kind_of(var_name)
       when "VAR" then "LOCAL"
       when "ARG" then "ARG"
+      when "FIELD" then "THIS"
       else "NONE-KIND"
       end
 
+      exp = children[3]
       var_index = @sym_table.index_of(var_name)
+      tree_2_vm([exp])
+
       @w.write_pop(segment, var_index)
     when "ifStatement"
       children = tree[0][1]

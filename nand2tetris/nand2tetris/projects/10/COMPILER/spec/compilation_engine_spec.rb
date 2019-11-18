@@ -257,4 +257,44 @@ label convert-WHILE-1
       expect { engine.to_vm }.to output(expected_result).to_stdout
     end
   end
+
+  describe '#compile_class constructor of Square of Square.jack' do
+    let(:contents) { 
+      <<~"EOS"
+class Square {
+  field int x, y;
+  field int size;
+  /** Constructs a new square with a given location and size. */
+  constructor Square new(int Ax, int Ay, int Asize) {
+    let x = Ax;
+    let y = Ay;
+    let size = Asize;
+    do draw();
+    return this;
+  }
+}
+EOS
+  }
+
+    it 'return output VM code' do
+      expected_result = <<~"EOS"
+function Square.new 0
+  push constant 3
+  call Memory.alloc 1
+  pop pointer 0
+  push argument 0
+  pop this 0
+  push argument 1
+  pop this 1
+  push argument 2
+  pop this 2
+  push pointer 0
+  call Square.draw 0
+  pop temp 0
+  return
+      EOS
+      engine.compile_class
+      expect { engine.to_vm }.to output(expected_result).to_stdout
+    end
+  end
 end
