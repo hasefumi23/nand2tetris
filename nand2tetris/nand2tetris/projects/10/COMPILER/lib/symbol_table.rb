@@ -3,6 +3,15 @@ require_relative "sym"
 class SymbolTable
   attr_reader :class_hash, :subroutine_hash, :past_subroutine_hashes
 
+  def self.kind_to_seg(kind)
+    case kind
+    when "VAR" then "LOCAL"
+    when "ARG" then "ARG"
+    when "FIELD" then "THIS"
+    else "NONE-KIND"
+    end
+  end
+
   # 空のシンボルテーブルを生成する
   def initialize
     @class_hash = {}

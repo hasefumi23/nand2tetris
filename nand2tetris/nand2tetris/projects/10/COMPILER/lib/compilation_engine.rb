@@ -109,7 +109,7 @@ class CompilationEngine
       keywords = tree[0][1]
       static_or_field = keywords[0][1]
       type = keywords[1][1]
-      keywords.each { |k| 
+      keywords[2..-1].each { |k| 
         tag_name = k[0]
         var_name = k[1]
         if tag_name == "identifier"
@@ -138,15 +138,16 @@ class CompilationEngine
         @w.write_push("CONST", field_count)
         @w.write_call("Memory.alloc", 1)
         @w.write_pop("POINTER", 0)
+      elsif @func_type == "method"
+        @w.write_push("ARG", 0)
+        @w.write_pop("POINTER", 0)
       end
       tree_2_vm(keywords[6..-1])
     # when "subroutineBody"
     #   if @func_type == "constructor"
     #     field_count = @sym_table.var_count("FIELD")
-    #     @w.write_call("Memory.alloc", field_count)
     #   end
     #   keywords = tree[0][1]
-    #   binding.pry
     #   tree_2_vm([keywords[1]])
     when "doStatement"
       keywords = tree[0][1]
@@ -173,10 +174,19 @@ class CompilationEngine
       if is_function_call
         clazz_name = @sym_table.type_of(obj_name)
         instance_name = clazz_name.nil? ? obj_name : clazz_name
+        # インスタンスメソッドの場合、インスタンスのポインタを渡し、その分の引数が増える
+        if !clazz_name.nil? && !%w[int char boolean].include?(obj_name)
+          expression_count += 1 
+          idx = @sym_table.index_of(obj_name)
+          kind = @sym_table.kind_of(obj_name)
+          segment = SymbolTable.kind_to_seg(kind)
+          @w.write_push(segment, idx)
+        end
         @w.write_call("#{instance_name}.#{func_name}", expression_count)
       else
         @w.write_push("POINTER", 0)
-        @w.write_call("#{@class_name}.#{func_name}", expression_count)
+        # 同一クラス内のインスタンスメソッドの場合、引数としてthisを渡すので+1する
+        @w.write_call("#{@class_name}.#{func_name}", expression_count + 1)
       end
       @w.write_pop("TEMP", 0)
       # tree_2_vm(keywords[6..-1])
@@ -211,7 +221,7 @@ class CompilationEngine
         expression_list_ary = terms[4]
         tree_2_vm([expression_list_ary])
         obj_name, func_name = first_term_val, terms[2][1]
-        expression_count = expression_list_ary.size - 1
+        expression_count = expression_list_ary[1].count { |l| l[0] == "expression" }
         @w.write_call("#{obj_name}.#{func_name}", expression_count)
       elsif first_term_type == "symbol" && first_term_val == "-"
         tree_2_vm([terms[1]])
@@ -231,12 +241,8 @@ class CompilationEngine
         @w.write_push("CONST", val)
       elsif first_term_type == "identifier"
         var_name = terms[0][1]
-        segment = case @sym_table.kind_of(var_name)
-        when "VAR" then "LOCAL"
-        when "ARG" then "ARG"
-        when "FIELD" then "THIS"
-        else "NONE-KIND"
-        end
+        kind = @sym_table.kind_of(var_name)
+        segment = SymbolTable.kind_to_seg(kind)
         var_index = @sym_table.index_of(var_name)
         @w.write_push(segment, var_index)
       elsif first_term_type == "symbol" && first_term_val == "("
@@ -247,7 +253,7 @@ class CompilationEngine
       children = tree[0][1]
       if @func_type == "constructor"
         # field_count = @sym_table.var_count("FIELD")
-        # @w.write_call("Memory.alloc", field_count)
+        @w.write_push("POINTER", 0)
       elsif children[1][0] == "expression"
         tree_2_vm([children[1]])
       elsif @return_type == "void"
@@ -259,12 +265,8 @@ class CompilationEngine
       children = tree[0][1]
       var_name = children[1][1]
 
-      segment = case @sym_table.kind_of(var_name)
-      when "VAR" then "LOCAL"
-      when "ARG" then "ARG"
-      when "FIELD" then "THIS"
-      else "NONE-KIND"
-      end
+      kind = @sym_table.kind_of(var_name)
+      segment = SymbolTable.kind_to_seg(kind)
 
       exp = children[3]
       var_index = @sym_table.index_of(var_name)
