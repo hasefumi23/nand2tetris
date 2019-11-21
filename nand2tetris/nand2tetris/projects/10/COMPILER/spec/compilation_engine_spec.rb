@@ -219,7 +219,7 @@ label convert-WHILE-0
   gt
   not
   not
-  if-goto convert-IF-0
+  if-goto convert-IF-2
   push argument 0
   push local 0
   and
@@ -227,27 +227,27 @@ label convert-WHILE-0
   eq
   not
   not
-  if-goto convert-IF-2
+  if-goto convert-IF-4
   push constant 8000
   push local 1
   add
   push constant 1
   call Memory.poke 2
   pop temp 0
-  goto convert-IF-3
-label convert-IF-2
+  goto convert-IF-5
+label convert-IF-4
   push constant 8000
   push local 1
   add
   push constant 0
   call Memory.poke 2
   pop temp 0
-label convert-IF-3
-  goto convert-IF-1
-label convert-IF-0
+label convert-IF-5
+  goto convert-IF-3
+label convert-IF-2
   push constant 0
   pop local 2
-label convert-IF-1
+label convert-IF-3
   goto convert-WHILE-0
 label convert-WHILE-1
   push constant 0
@@ -289,8 +289,9 @@ function Square.new 0
   push argument 2
   pop this 2
   push pointer 0
-  call Square.draw 0
+  call Square.draw 1
   pop temp 0
+  push pointer 0
   return
       EOS
       engine.compile_class

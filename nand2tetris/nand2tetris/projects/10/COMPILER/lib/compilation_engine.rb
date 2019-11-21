@@ -216,6 +216,7 @@ class CompilationEngine
       first_term_type = terms[0][0]
       first_term_val = terms[0][1]
       second_term_val = terms&.at(1)&.at(1)
+
       if first_term_type == "identifier" && second_term_val == "."
         # Memory.peek(var)のような関数呼び出し
         expression_list_ary = terms[4]
@@ -236,6 +237,8 @@ class CompilationEngine
         else
           @w.write_push("CONST", 0)
         end
+      elsif first_term_type == "keyword" && first_term_val == "this"
+        @w.write_push("POINTER", 0)
       elsif %w[integerConstant stringConstant].include?(first_term_type)
         val = terms[0][1]
         @w.write_push("CONST", val)
@@ -299,6 +302,7 @@ class CompilationEngine
       children = tree[0][1]
       var_name = children[1][1]
       base_label_count = @if_label_count
+      @if_label_count += 2
       @w.write_label("#{@func_name}-WHILE-#{base_label_count}")
       exp = children[2]
       tree_2_vm([exp])
