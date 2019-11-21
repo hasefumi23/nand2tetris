@@ -207,6 +207,8 @@ class CompilationEngine
         op = op_ary[1]
         if op == "*"
           @w.write_call("Math.multiply", "2")
+        elsif op == "/"
+          @w.write_call("Math.divide", "2")
         else
           @w.write_arithmetic(OPERATOR_HASH[op])
         end
@@ -216,6 +218,7 @@ class CompilationEngine
       first_term_type = terms[0][0]
       first_term_val = terms[0][1]
       second_term_val = terms&.at(1)&.at(1)
+      fourth_term_val = terms&.at(3)&.at(1)
 
       if first_term_type == "identifier" && second_term_val == "."
         # Memory.peek(var)のような関数呼び出し
@@ -224,6 +227,17 @@ class CompilationEngine
         obj_name, func_name = first_term_val, terms[2][1]
         expression_count = expression_list_ary[1].count { |l| l[0] == "expression" }
         @w.write_call("#{obj_name}.#{func_name}", expression_count)
+      elsif second_term_val == "[" && fourth_term_val == "]"
+        var_name = terms[0][1]
+        kind = @sym_table.kind_of(var_name)
+        segment = SymbolTable.kind_to_seg(kind)
+        var_index = @sym_table.index_of(var_name)
+        @w.write_push(segment, var_index)
+        exp = terms[2]
+        tree_2_vm([exp])
+        @w.write_arithmetic("ADD")
+        @w.write_pop("POINTER", 1) # THATに配列のアドレスを設定
+        @w.write_push("THAT", 0)
       elsif first_term_type == "symbol" && first_term_val == "-"
         tree_2_vm([terms[1]])
         @w.write_arithmetic("NEG")
@@ -239,9 +253,17 @@ class CompilationEngine
         end
       elsif first_term_type == "keyword" && first_term_val == "this"
         @w.write_push("POINTER", 0)
-      elsif %w[integerConstant stringConstant].include?(first_term_type)
+      elsif first_term_type == "integerConstant"
         val = terms[0][1]
         @w.write_push("CONST", val)
+      elsif first_term_type == "stringConstant"
+        str = first_term_val
+        @w.write_push("CONST", str.size)
+        @w.write_call("String.new", 1)
+        str.bytes { |b|
+          @w.write_push("CONST", b)
+          @w.write_call("String.appendChar", 2)
+        }
       elsif first_term_type == "identifier"
         var_name = terms[0][1]
         kind = @sym_table.kind_of(var_name)
@@ -270,12 +292,22 @@ class CompilationEngine
 
       kind = @sym_table.kind_of(var_name)
       segment = SymbolTable.kind_to_seg(kind)
-
-      exp = children[3]
       var_index = @sym_table.index_of(var_name)
-      tree_2_vm([exp])
 
-      @w.write_pop(segment, var_index)
+      if children[2][1] == "[" && children[4][1] == "]"
+        @w.write_push(segment, var_index)
+        tree_2_vm([children[3]])
+        @w.write_arithmetic("ADD")
+        @w.write_pop("POINTER", 1)
+        # call Keyboard.readInt 1
+        tree_2_vm([children[6]])
+        @w.write_pop("THAT", 0)
+      else
+        exp = children[3]
+        tree_2_vm([exp])
+
+        @w.write_pop(segment, var_index)
+      end
     when "ifStatement"
       children = tree[0][1]
       var_name = children[1][1]
