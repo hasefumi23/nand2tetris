@@ -49,7 +49,6 @@ class CompilationEngine
 
   def to_vm
     tree_2_vm(@current_node)
-    # pp @sym_table
   end
 
   def tree_2_vm(tree)
@@ -143,12 +142,6 @@ class CompilationEngine
         @w.write_pop("POINTER", 0)
       end
       tree_2_vm(keywords[6..-1])
-    # when "subroutineBody"
-    #   if @func_type == "constructor"
-    #     field_count = @sym_table.var_count("FIELD")
-    #   end
-    #   keywords = tree[0][1]
-    #   tree_2_vm([keywords[1]])
     when "doStatement"
       keywords = tree[0][1]
       is_function_call = keywords[2][0] == "symbol" && keywords[2][1] == "."
@@ -191,13 +184,11 @@ class CompilationEngine
         @w.write_call("#{@class_name}.#{func_name}", expression_count + 1)
       end
       @w.write_pop("TEMP", 0)
-      # tree_2_vm(keywords[6..-1])
     when "expressionList"
       expression_list = tree[0][1]
       expression_list.each_slice(2).map(&:first).each { |expression_ary|
         tree_2_vm([expression_ary])
       }
-      # tree_2_vm([expression_list_ary])
     when "expression"
       expression = tree[0][1]
       first_term = expression.slice!(0)
@@ -306,18 +297,17 @@ class CompilationEngine
     when "letStatement"
       children = tree[0][1]
       var_name = children[1][1]
-
       kind = @sym_table.kind_of(var_name)
       segment = SymbolTable.kind_to_seg(kind)
       var_index = @sym_table.index_of(var_name)
 
       if children[2][1] == "[" && children[4][1] == "]"
+        # 変数が配列の場合
+        tree_2_vm([children[6]])
         @w.write_push(segment, var_index)
         tree_2_vm([children[3]])
         @w.write_arithmetic("ADD")
         @w.write_pop("POINTER", 1)
-        # call Keyboard.readInt 1
-        tree_2_vm([children[6]])
         @w.write_pop("THAT", 0)
       else
         exp = children[3]
@@ -399,9 +389,7 @@ class CompilationEngine
   end
 
   def to_xml
-    # pp @current_node.pop
     tree_2_xml(@current_node)
-    # pp @sym_table
   end
 
   # 識別子のカテゴリ（var、argument、static、field、class、subroutine）
