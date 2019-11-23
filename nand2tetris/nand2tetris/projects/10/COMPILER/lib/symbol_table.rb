@@ -1,15 +1,30 @@
+require_relative "sym"
+
 class SymbolTable
-  attr_reader :class_hash, :subroutine_hash
+  attr_reader :class_hash, :subroutine_hash, :past_subroutine_hashes
+
+  def self.kind_to_seg(kind)
+    case kind
+    when "VAR" then "LOCAL"
+    when "ARG" then "ARG"
+    when "FIELD" then "THIS"
+    when "STATIC" then "STATIC"
+    else "NONE-KIND"
+    end
+  end
 
   # 空のシンボルテーブルを生成する
   def initialize
     @class_hash = {}
     @subroutine_hash = {}
+    # デバッグ用
+    @past_subroutine_hashes = []
   end
 
   # 新しいサブルーチンのスコープを開始する
   # （つまり、サブルーチンのシンボルテーブルをリセットする）
   def start_subroutine
+    @past_subroutine_hashes << @subroutine_hash unless @subroutine_hash.empty?
     @subroutine_hash = {}
   end
 
@@ -21,7 +36,9 @@ class SymbolTable
     when "STATIC", "FIELD" then @class_hash
     when "ARG", "VAR" then @subroutine_hash
     end
-    hash[name] = sym
+    # 既に定義済みの場合でも再定義しようとする場合があるので、それを防ぐ
+    hash[name] = sym if hash[name].nil?
+    hash[name]
   end
 
   # 引数で与えられた属性について、それが現在のスコープで定義されている数を返す
@@ -33,18 +50,22 @@ class SymbolTable
     hash.select { |_, s| s.kind == kind }.size
   end
 
+  def sym_of(name)
+    @subroutine_hash[name] || @class_hash[name]
+  end
+
   # 引数で与えられた名前の識別子を現在のスコープで探し、その属性を返す。その識別子が現在のスコープで見つからなければ、NONE を返す
   def kind_of(name)
-    (@subroutine_hash[name] || @class_hash[name]).kind
+    (@subroutine_hash[name] || @class_hash[name])&.kind || "NONE"
   end
 
   # 引数で与えられた名前の識別子を現在のスコープで探し、その型を返す
   def type_of(name)
-    (@subroutine_hash[name] || @class_hash[name]).type
+    (@subroutine_hash[name] || @class_hash[name])&.type
   end
 
   # 引数で与えられた名前の識別子を現在のスコープで探し、そのインデックスを返す 
   def index_of(name)
-    (@subroutine_hash[name] || @class_hash[name]).index
+    (@subroutine_hash[name] || @class_hash[name])&.index
   end
 end
