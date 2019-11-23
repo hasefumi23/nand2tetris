@@ -162,9 +162,6 @@ class CompilationEngine
         expression_list_ary = keywords[3]
       end
 
-      tree_2_vm([expression_list_ary])
-      tree_2_vm([statements]) unless statements.nil?
-
       expression_count  = if expression_list_ary[1].empty?
         0
       else
@@ -182,9 +179,14 @@ class CompilationEngine
           segment = SymbolTable.kind_to_seg(kind)
           @w.write_push(segment, idx)
         end
+        tree_2_vm([expression_list_ary])
+        tree_2_vm([statements]) unless statements.nil?
         @w.write_call("#{instance_name}.#{func_name}", expression_count)
       else
+        # インスタンスメソッドの場合は最初にthisをpushしておく
         @w.write_push("POINTER", 0)
+        tree_2_vm([expression_list_ary])
+        tree_2_vm([statements]) unless statements.nil?
         # 同一クラス内のインスタンスメソッドの場合、引数としてthisを渡すので+1する
         @w.write_call("#{@class_name}.#{func_name}", expression_count + 1)
       end
@@ -225,8 +227,24 @@ class CompilationEngine
         expression_list_ary = terms[4]
         tree_2_vm([expression_list_ary])
         obj_name, func_name = first_term_val, terms[2][1]
-        expression_count = expression_list_ary[1].count { |l| l[0] == "expression" }
-        @w.write_call("#{obj_name}.#{func_name}", expression_count)
+        expression_count = expression_list_ary[1].count { |l|
+          l[0] == "expression"
+        }
+        class_name = @sym_table.type_of(obj_name)
+
+        instance_name = class_name.nil? ? obj_name : class_name
+        if class_name.nil?
+          # staticなメソッド呼び出しの場合
+          @w.write_call("#{instance_name}.#{func_name}", expression_count)
+        else
+          # インスタンスのメソッド呼び出しの場合
+          expression_count += 1 
+          idx = @sym_table.index_of(obj_name)
+          kind = @sym_table.kind_of(obj_name)
+          segment = SymbolTable.kind_to_seg(kind)
+          @w.write_push(segment, idx)
+          @w.write_call("#{instance_name}.#{func_name}", expression_count)
+        end
       elsif second_term_val == "[" && fourth_term_val == "]"
         var_name = terms[0][1]
         kind = @sym_table.kind_of(var_name)
@@ -277,7 +295,6 @@ class CompilationEngine
     when "returnStatement"
       children = tree[0][1]
       if @func_type == "constructor"
-        # field_count = @sym_table.var_count("FIELD")
         @w.write_push("POINTER", 0)
       elsif children[1][0] == "expression"
         tree_2_vm([children[1]])

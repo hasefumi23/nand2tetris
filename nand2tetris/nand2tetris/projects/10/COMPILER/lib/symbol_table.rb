@@ -8,6 +8,7 @@ class SymbolTable
     when "VAR" then "LOCAL"
     when "ARG" then "ARG"
     when "FIELD" then "THIS"
+    when "STATIC" then "STATIC"
     else "NONE-KIND"
     end
   end
